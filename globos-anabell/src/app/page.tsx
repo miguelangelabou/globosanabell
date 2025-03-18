@@ -36,11 +36,12 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-pink-200 min-h-screen p-6 text-yellow-900">
-      <header className="text-center py-6">
-        <h1 className="text-4xl font-bold border-b-4 border-black">Tienda de Arreglos Florales</h1>
+    <div className="bg-white min-h-screen px-32">
+      <header className="inline-flex justify-between text-center p-6 w-full border-b-4 border-black">
+        <h1 className="text-4xl font-bold">Globos Anabell</h1>
         <Link href="/checkout" className="bg-blue-300 px-4 py-2 rounded-lg shadow-md">Ir al Carrito ({cart.length})</Link>
       </header>
+
       <main className="max-w-4xl mx-auto">
         <section className="text-center">
           <p className="text-lg my-4">Hermosos arreglos florales para cualquier ocasión.</p>
