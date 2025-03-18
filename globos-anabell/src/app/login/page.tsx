@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "../../config/firebaseConfig";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, fetchSignInMethodsForEmail } from "firebase/auth";
+import { useRouter } from 'next/navigation';
+import { useAuth } from "../../contexts/AuthContext";
 import { isValidEmail } from "../../utils/Validations";
 
 const AuthPage = () => {
@@ -11,6 +13,15 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const { login, user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -19,7 +30,7 @@ const AuthPage = () => {
         await createUserWithEmailAndPassword(auth, email, password);
         window.location.assign("/");
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await login(email, password);
         window.location.assign("/");
       }
     } catch (err: any) {
