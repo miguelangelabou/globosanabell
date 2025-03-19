@@ -48,3 +48,19 @@ Respuesta: Me atrae el enfoque integral de Ciancoders, que abarca desde el desar
 
 5. ¿Cómo te ves contribuyendo a la misión de Ciancoders de ofrecer soluciones de software innovadoras?
 Respuesta: Me veo aportando mis habilidades en desarrollo frontend para crear interfaces de usuario intuitivas y eficientes. Estoy emocionado por la oportunidad de trabajar en proyectos diversos y desafiantes, y de colaborar con expertos en diferentes áreas. Además, mi compromiso con el aprendizaje continuo se alinea con la cultura de innovación de Ciancoders, lo que me permitirá adaptarme rápidamente a nuevas tecnologías y metodologías.
+
+Abajo de la lista de productos quiero una lista de ventas con la siguiente informacion:
+interface Sale {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    DNI: string;
+    location: string;
+    product: [{
+        id: string;
+        name: string;
+        price: number;
+        amount: number;
+    }]
+}

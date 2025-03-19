@@ -5,9 +5,10 @@ interface Company {
     name: string;
     description: string;
     logoURL: string;
-    bannerURL: string;
     openHour: Timestamp;
     closeHour: Timestamp;
+    whatsapp: string;
+    instagram: string;
     location: string;
     locationMaps: string;
     isOpen: boolean;

@@ -1,11 +1,11 @@
 interface Product {
     id: string;
     name: string;
+    description: string;
     price: number;
     soldTimes: number
     active: boolean;
-    description: string;
-    images: string[];
+    imageURL: string;
 }
 
 export default Product;

@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: rgb(226,114,218);
+  background: -moz-linear-gradient(90deg, rgba(226,114,218,1) 0%, rgba(0,212,255,1) 40%, rgba(226,114,218,1) 78%, rgba(0,212,255,1) 100%);
+  background: -webkit-linear-gradient(90deg, rgba(226,114,218,1) 0%, rgba(0,212,255,1) 40%, rgba(226,114,218,1) 78%, rgba(0,212,255,1) 100%);
+  background: linear-gradient(90deg, rgba(226,114,218,1) 0%, rgba(0,212,255,1) 40%, rgba(226,114,218,1) 78%, rgba(0,212,255,1) 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#e272da",endColorstr="#00d4ff",GradientType=1);
   font-family: Arial, Helvetica, sans-serif;
 }
