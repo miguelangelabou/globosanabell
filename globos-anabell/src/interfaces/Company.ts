@@ -4,9 +4,12 @@ interface Company {
     id: string;
     name: string;
     description: string;
+    phone: string;
     logoURL: string;
     openHour: Timestamp;
     closeHour: Timestamp;
+    openHourFormatted?: string;
+    closeHourFormatted?: string;
     whatsapp: string;
     instagram: string;
     location: string;

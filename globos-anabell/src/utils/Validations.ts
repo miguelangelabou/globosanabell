@@ -116,7 +116,7 @@ export const validateEntity = (
             break;
             
         case "image":
-            const validTypes = ['image/png', 'image/jpeg' , 'image/jpg', 'image/webp'];
+            const validTypes = ["image/png", "image/jpeg" , "image/jpg", "image/webp"];
             if (!validTypes.includes(data.file.type)) {                
                 return { valid: false, message: "El formato de la imagen debe ser PNG, JPEG JPG o WEBP." }
             }

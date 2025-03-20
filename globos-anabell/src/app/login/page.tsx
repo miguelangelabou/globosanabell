@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "../../config/firebaseConfig";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import { isValidEmail } from "../../utils/Validations";
 
