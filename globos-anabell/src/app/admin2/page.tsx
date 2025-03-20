@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { getDocuments, getDocument, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
 import { Timestamp } from "firebase/firestore";
-import Company from "../../interfaces/"
+import Company from "../../interfaces/Company"
 
 interface CompanyWithFormattedTimes extends Company {
     openHourFormatted?: string;
@@ -76,8 +76,8 @@ const CompanyInfo = ({ setActiveSection }) => {
     description: "",
     phone: "",
     logoURL: "",
-    openHour: null,
-    closeHour: null,
+    openHour: Timestamp.now(),
+    closeHour: Timestamp.now(),
     whatsapp: "",
     instagram: "",
     location: "",
@@ -114,12 +114,12 @@ const CompanyInfo = ({ setActiveSection }) => {
     }
   };
 
-  const formatTimestampForTimeInput = (timestamp) => {
+  const formatTimestampForTimeInput = (timestamp: Timestamp) => {
     const date = timestamp.toDate();
     return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   };
 
-  const createTimestampFromTimeString = (timeString) => {
+  const createTimestampFromTimeString = (timeString: string) => {
     if (!timeString) return null;
     
     const [hours, minutes] = timeString.split(":").map(Number);
@@ -128,7 +128,7 @@ const CompanyInfo = ({ setActiveSection }) => {
     return Timestamp.fromDate(date);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     
     if (type === "checkbox") {
@@ -138,7 +138,7 @@ const CompanyInfo = ({ setActiveSection }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setLoading(true);
     
