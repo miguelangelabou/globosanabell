@@ -6,27 +6,46 @@ import { getDocuments } from "../../utils/Database"
 import { isValidEmail } from "../../utils/Validations";
 import Company from "../../interfaces/Company"
 
-const company = (await getDocuments("company") as Company[])[0];
-
 const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [company, setCompany] = useState<Company | null>(null);
 
-  const { logout, login, user, sendPasswordResetEmail  } = useAuth();
+  const { login, user, sendPasswordResetEmail, loading } = useAuth();
   const router = useRouter();
 
-  console.log(user ? user : null)
-
-  logout()
-
   useEffect(() => {
+    if (loading) return;
     if (user) {
       router.push("/admin");
     }
-  }, [user, router]);
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
+  useEffect(() => {
+    const loadCompanyData = async () => {
+      try {
+        const companies = await getDocuments("company") as Company[];
+        if (companies && companies.length > 0) {
+          setCompany(companies[0]);
+        }
+      } catch (error) {
+        console.error("Error cargando datos de la compañía:", error);
+      }
+    };
+    
+    loadCompanyData();
+  }, []);
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,7 +66,6 @@ const AuthPage = () => {
 
     try {
       await login(email, password);
-      router.push("/admin");
     } catch (err: any) {
       if (err.message === "Firebase: Error (auth/email-already-in-use).") {
         setError("Ya existe una cuenta asociada a ese correo electrónico.");
@@ -85,8 +103,12 @@ const AuthPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="mb-6 text-center">
-          <img src={company?.logoURL} className="rounded-full w-32 h-32 mx-auto"/>
-          <h1 className="text-2xl font-bold text-gray-800">Administración de {company.name}</h1>
+          {company && (
+            <>
+              <img src={company.logoURL} alt="Logo" className="rounded-full w-32 h-32 mx-auto"/>
+              <h1 className="text-2xl font-bold text-gray-800">Administración de {company.name}</h1>
+            </>
+          )}
           <p className="text-gray-600 mt-2">Ingrese sus credenciales para acceder</p>
         </div>
         
@@ -134,16 +156,7 @@ const AuthPage = () => {
           </div>
           
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center">
-              <input
-                id="remember"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember" className="ml-2 block text-gray-700">
-                Recordarme
-              </label>
-            </div>
+            <div></div>
             
             <button
               type="button"

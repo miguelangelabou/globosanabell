@@ -1,8 +1,10 @@
 "use client";
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link"
 import { getDocuments, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
 import { Timestamp } from "firebase/firestore";
+import { useAuth } from "../../contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import Company from "../../interfaces/Company"
 import Product from "../../interfaces/Product";
 import Category from "../../interfaces/Category";
@@ -77,6 +79,25 @@ const Sidebar =  ({ activeSection, setActiveSection }: { activeSection: string; 
 
 // Panel principal
 const AdminPanel = () => {
+
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return; 
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
   const [activeSection, setActiveSection] = useState<string>("empresa");
 
   const renderActiveSection = () => {

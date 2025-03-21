@@ -1,19 +1,19 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged, 
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
   User,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
 };
@@ -24,41 +24,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
-
-      if (!user) {
-        const currentPath = window.location.pathname;
-        if (!currentPath.includes('/login')) {
-          window.location.assign('/login');
-        }
+      
+      // Redirigir solo si el usuario NO está autenticado y NO estamos ya en /login
+      if (!user && pathname !== "/login") {
+        router.push("/login");
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router, pathname]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      const logged = await signInWithEmailAndPassword(auth, email, password);
+      const logged = await signInWithEmailAndPassword(auth, username, password);
       setUser(logged.user);
-      router.push("/admin")
-    } catch (error) { 
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-      router.push("/login");
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-      throw new Error("Error al cerrar sesión.");
+    } catch (error: any) {
+      if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+        throw new Error("Credenciales incorrectas.");
+      } else {
+        throw new Error(error.message || "Ocurrió un error en el inicio de sesión.");
+      }
     }
   };
 
@@ -73,9 +64,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const logout = async () => {
+    try {
+      await signOut(auth);
+
+      // Evitar redirección si ya estamos en /login
+      if (pathname !== "/login") {
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, sendPasswordResetEmail }}>
-      {!loading && user && children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

@@ -1,16 +1,18 @@
+// app/layout.tsx (Componente de servidor)
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import { AuthProvider } from "../contexts/AuthContext";
 import { getDocuments } from "../utils/Database";
-import Company from "../interfaces/Company"
+import { AuthProvider } from "../contexts/AuthContext";
 
-const company = (await getDocuments("company") as Company[])[0];
-
-export const metadata: Metadata = {
-  title: company.name,
-  description: company.description,
-  icons: company.logoURL
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const companies = (await getDocuments("company")) as any[];
+  const company = companies[0];
+  return {
+    title: company?.name || "...",
+    description: company?.description || "...",
+    icons: company?.logoURL || "",
+  };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
