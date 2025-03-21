@@ -6,8 +6,8 @@ interface Company {
     description: string;
     phone: string;
     logoURL: string;
-    openHour: Timestamp;
-    closeHour: Timestamp;
+    openHour: Timestamp | null;
+    closeHour: Timestamp | null;
     openHourFormatted?: string;
     closeHourFormatted?: string;
     whatsapp: string;

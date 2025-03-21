@@ -4,7 +4,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged, 
-  User 
+  User,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail
 } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
 import { useRouter } from "next/navigation";
@@ -14,6 +15,7 @@ type AuthContextType = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -24,19 +26,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
-      } else {
-        localStorage.removeItem("user");
-      }
       setLoading(false);
+
+      if (!user) {
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/login')) {
+          window.location.assign('/login');
+        }
+      }
     });
 
     return () => unsubscribe();
@@ -46,9 +45,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const logged = await signInWithEmailAndPassword(auth, email, password);
       setUser(logged.user);
-      localStorage.setItem("user", JSON.stringify(logged.user));
+      router.push("/admin")
     } catch (error) { 
-      throw new Error("Error al iniciar sesión.");
+      throw error;
     }
   };
 
@@ -56,16 +55,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOut(auth);
       setUser(null);
-      localStorage.removeItem("user");
       router.push("/login");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
+      throw new Error("Error al cerrar sesión.");
+    }
+  };
+
+  const sendPasswordResetEmail = async (email: string) => {
+    try {
+      await firebaseSendPasswordResetEmail(auth, email, {
+        url: `${window.location.origin}/login`,
+      });
+    } catch (error) {
+      console.error("Error al enviar correo de restablecimiento:", error);
+      throw new Error("Error al enviar correo de restablecimiento de contraseña.");
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, loading, login, logout, sendPasswordResetEmail }}>
+      {!loading && user && children}
     </AuthContext.Provider>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getDocuments, categories } from "../utils/Database";
+import { getDocuments, categories, categoryGroups } from "../utils/Database";
 import { Timestamp } from "firebase/firestore";
 import Product from "../interfaces/Product";
 import Company from "../interfaces/Company";
@@ -29,22 +29,21 @@ const Store = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [sortOption, setSortOption] = useState("featured"); // "featured", "price-low-high", "price-high-low", "popular"
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 1000});
-  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [cart, setCart] = useState<{product: Product, quantity: number}[]>(() => {
+    const savedCart = localStorage.getItem("cart");
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+  const [wishlist, setWishlist] = useState<string[]>(() => {
+    const savedWishlist = localStorage.getItem("wishlist");
+    return savedWishlist ? JSON.parse(savedWishlist) : [];
+  });
   
   const ITEMS_PER_PAGE = 12;
-  
-  // Categorías agrupadas
-  const categoryGroups = {
-    "Fechas Especiales": ["14_febrero", "21_marzo", "21_septiembre", "cumpleaños", "bodas"],
-    "Productos Destacados": ["regalos", "detalles", "peluches", "flores", "ramos", "globos"],
-    "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "desayunos", "cestas", "complementos"]
-  };
   
   // Obtener el nombre de visualización de una categoría
   const getCategoryLabel = (value: string) => {
@@ -101,6 +100,11 @@ const Store = () => {
 
   // Filtrar y ordenar productos
   const filteredProducts = products.filter(product => {
+
+    if (sortOption === "favorites") {
+      return wishlist.includes(product.id);
+    }
+
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
@@ -148,11 +152,9 @@ const Store = () => {
     // Mostrar notificación
     const notification = document.getElementById("notification");
     if (notification) {
-      notification.classList.remove("opacity-0");
-      notification.classList.add("opacity-100");
+      notification.classList.remove("hidden");
       setTimeout(() => {
-        notification.classList.remove("opacity-100");
-        notification.classList.add("opacity-0");
+        notification.classList.add("hidden");
       }, 2000);
     }
   };
@@ -226,9 +228,9 @@ const Store = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Notificación */}
-      <div id="notification" className="fixed top-6 right-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg transition-opacity duration-300 opacity-0 z-50">
+      <div id="notification" className="fixed hidden top-6 right-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg transition-opacity duration-300 opacity-0 z-50">
         <div className="flex items-center">
           <div className="mr-2">
             <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -256,7 +258,7 @@ const Store = () => {
               {/* Carrito */}
               <button 
                 onClick={() => setShowCart(!showCart)} 
-                className="relative p-2 text-gray-700 hover:text-pink-600 transition-colors"
+                className="relative p-2 text-gray-700 hover:text-pink-600 transition-colors cursor-pointer"
               >
                 <ShoppingCartIcon className="h-6 w-6" />
                 {cart.length > 0 && (
@@ -268,7 +270,7 @@ const Store = () => {
               
               {/* Botón de filtros móvil */}
               <button 
-                className="sm:hidden p-2 text-gray-700 hover:text-pink-600 transition-colors"
+                className="sm:hidden p-2 text-gray-700 hover:text-pink-600 transition-colors cursor-pointer"
                 onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
               >
                 <AdjustmentsHorizontalIcon className="h-6 w-6" />
@@ -299,9 +301,10 @@ const Store = () => {
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
-                className="ml-2 py-3 px-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                className="ml-2 py-3 px-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 cursor-pointer"
               >
                 <option value="featured">Destacados</option>
+                <option value="favorites">Mis favoritos</option>
                 <option value="popular">Más populares</option>
                 <option value="price-low-high">Precio: menor a mayor</option>
                 <option value="price-high-low">Precio: mayor a menor</option>
@@ -312,9 +315,9 @@ const Store = () => {
       </header>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row">
+        <div className="flex flex-col gap-12 sm:flex-row">
           {/* Sidebar de filtros (pantallas medianas y grandes) */}
-          <div className="hidden sm:block w-64 pr-8">
+          <div className="hidden sm:block w-64 pr-8 bg-[#fcdef8] p-4 rounded-md">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Filtros</h2>
             
             {/* Categorías */}
@@ -326,7 +329,7 @@ const Store = () => {
                     setSelectedCategory("");
                     setCurrentPage(0);
                   }}
-                  className={`block mb-2 text-sm ${selectedCategory === "" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
+                  className={`block mb-2 text-sm cursor-pointer ${selectedCategory === "" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
                 >
                   Todas las categorías
                 </button>
@@ -342,7 +345,7 @@ const Store = () => {
                               setSelectedCategory(value);
                               setCurrentPage(0);
                             }}
-                            className={`block mb-1 text-sm ${selectedCategory === value ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
+                            className={`block mb-1 text-sm cursor-pointer ${selectedCategory === value ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
                           >
                             {getCategoryLabel(value)}
                           </button>
@@ -386,9 +389,9 @@ const Store = () => {
                   <h2 className="text-lg font-medium text-gray-900">Filtros</h2>
                   <button 
                     onClick={() => setIsMobileFiltersOpen(false)}
-                    className="text-gray-500 focus:outline-none"
+                    className="text-gray-500 focus:outline-none cursor-pointer"
                   >
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-6 w-6 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -404,7 +407,7 @@ const Store = () => {
                         setCurrentPage(0);
                         setIsMobileFiltersOpen(false);
                       }}
-                      className={`block mb-2 text-sm ${selectedCategory === "" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
+                      className={`block mb-2 text-sm cursor-pointer ${selectedCategory === "" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
                     >
                       Todas las categorías
                     </button>
@@ -421,7 +424,7 @@ const Store = () => {
                                   setCurrentPage(0);
                                   setIsMobileFiltersOpen(false);
                                 }}
-                                className={`block mb-1 text-sm ${selectedCategory === value ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
+                                className={`block mb-1 text-sm cursor-pointer ${selectedCategory === value ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
                               >
                                 {getCategoryLabel(value)}
                               </button>
@@ -462,15 +465,15 @@ const Store = () => {
           {/* Contenido principal */}
           <div className="flex-1">
             {/* Panel de carrito */}
-            <div className={`fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-xl overflow-y-auto transform ${showCart ? "translate-x-0" : "translate-x-full"} transition-transform duration-300 ease-in-out z-50`}>
+            <div className={`fixed border-l bg-[#fcdef8] border-gray-400 inset-y-0 right-0 max-w-md w-full shadow-xl overflow-y-auto transform ${showCart ? "translate-x-0" : "translate-x-full"} transition-transform duration-300 ease-in-out z-50`}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Tu carrito</h2>
                   <button 
                     onClick={() => setShowCart(false)}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer"
                   >
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-6 w-6 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -483,16 +486,16 @@ const Store = () => {
                     <p className="text-gray-500 mb-4">¿Por qué no añades algo bonito?</p>
                     <button 
                       onClick={() => setShowCart(false)}
-                      className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
+                      className="inline-flex items-center cursor-pointer justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
                     >
                       Continuar comprando
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className="divide-y divide-gray-200">
+                    <div className="space-y-2 divide-gray-200">
                       {cart.map(item => (
-                        <div key={item.product.id} className="py-4 flex">
+                        <div key={item.product.id} className="p-4 flex rounded-md bg-white shadow-md">
                           <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                             <img src={item.product.imageURL} alt={item.product.name} className="h-full w-full object-cover object-center" />
                           </div>
@@ -508,17 +511,17 @@ const Store = () => {
                               <div className="flex items-center border rounded-md">
                                 <button 
                                   onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                  className="px-2 py-1 text-gray-600 hover:text-gray-800"
+                                  className="px-2 py-1 text-gray-600 hover:text-gray-800 cursor-pointer"
                                 >-</button>
                                 <span className="px-2 py-1 text-gray-800">{item.quantity}</span>
                                 <button 
                                   onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                  className="px-2 py-1 text-gray-600 hover:text-gray-800"
+                                  className="px-2 py-1 text-gray-600 hover:text-gray-800 cursor-pointer"
                                 >+</button>
                               </div>
                               <button 
                                 onClick={() => removeFromCart(item.product.id)}
-                                className="font-medium text-pink-600 hover:text-pink-500"
+                                className="font-medium text-pink-600 hover:text-pink-500 cursor-pointer"
                               >
                                 Eliminar
                               </button>
@@ -536,7 +539,7 @@ const Store = () => {
                       <p className="text-sm text-gray-500 mb-6">Envío y descuentos calculados al finalizar la compra.</p>
                       <button
                         onClick={checkout}
-                        className="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-pink-600 hover:bg-pink-700"
+                        className="w-full flex items-center cursor-pointer justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-pink-600 hover:bg-pink-700"
                       >
                         Finalizar compra por WhatsApp
                       </button>
@@ -545,7 +548,7 @@ const Store = () => {
                           o{" "}
                           <button
                             type="button"
-                            className="font-medium text-pink-600 hover:text-pink-500"
+                            className="font-medium text-pink-600 hover:text-pink-500 cursor-pointer"
                             onClick={() => setShowCart(false)}
                           >
                             Continuar comprando
@@ -573,7 +576,7 @@ const Store = () => {
               {displayedProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {displayedProducts.map(product => (
-                    <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                    <div key={product.id} className="bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
                       <div className="relative h-56 overflow-hidden">
                         <img 
                           src={product.imageURL} 
@@ -582,14 +585,14 @@ const Store = () => {
                         />
                         <button
                           onClick={() => toggleWishlist(product.id)}
-                          className="absolute top-2 right-2 p-2 bg-white bg-opacity-70 rounded-full shadow-sm hover:bg-opacity-100 transition-colors"
+                          className="absolute cursor-pointer top-2 right-2 p-2 bg-white bg-opacity-70 rounded-full shadow-sm hover:bg-opacity-100 transition-colors"
                         >
                           <HeartIcon 
                             className={`h-5 w-5 ${wishlist.includes(product.id) ? "text-pink-500 fill-pink-500" : "text-gray-400"}`} 
                           />
                         </button>
                       </div>
-                      <div className="p-4">
+                      <div className="p-4 flex flex-col flex-grow">
                         <div className="mb-2">
                           <span className="inline-block px-2 py-1 text-xs font-semibold text-pink-600 bg-pink-100 rounded-full">
                             {getCategoryLabel(product.category)}
@@ -597,11 +600,11 @@ const Store = () => {
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.name}</h3>
                         <p className="text-gray-500 text-sm mb-2 line-clamp-2">{product.description}</p>
-                        <div className="flex items-center justify-between mt-4">
+                        <div className="mt-auto pt-4 flex items-center justify-between">
                           <p className="text-xl font-bold text-gray-900">{product.price}€</p>
                           <button
                             onClick={() => addToCart(product)}
-                            className="flex items-center justify-center px-3 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                            className="flex items-center justify-center cursor-pointer px-3 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
                           >
                             <ShoppingCartIcon className="h-5 w-5 mr-1" />
                             <span>Añadir</span>
@@ -624,7 +627,7 @@ const Store = () => {
                           setPriceRange({min: 0, max: 1000});
                           setCurrentPage(0);
                         }}
-                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
+                        className="inline-flex items-center justify-center cursor-pointer px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
                       >
                         Limpiar filtros
                       </button>
@@ -639,7 +642,7 @@ const Store = () => {
                       <button 
                         onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                         disabled={currentPage === 0}
-                        className={`mx-1 px-3 py-2 rounded-md ${
+                        className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
                           currentPage === 0 
                             ? "text-gray-400 cursor-not-allowed" 
                             : "text-gray-700 hover:bg-gray-200"
@@ -652,7 +655,7 @@ const Store = () => {
                         <button
                           key={index}
                           onClick={() => setCurrentPage(index)}
-                          className={`mx-1 px-3 py-2 rounded-md ${
+                          className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
                             currentPage === index
                               ? "bg-pink-600 text-white"
                               : "text-gray-700 hover:bg-gray-200"
@@ -665,7 +668,7 @@ const Store = () => {
                       <button 
                         onClick={() => setCurrentPage(Math.min(pageCount - 1, currentPage + 1))}
                         disabled={currentPage === pageCount - 1}
-                        className={`mx-1 px-3 py-2 rounded-md ${
+                        className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
                           currentPage === pageCount - 1 
                             ? "text-gray-400 cursor-not-allowed" 
                             : "text-gray-700 hover:bg-gray-200"
@@ -675,39 +678,39 @@ const Store = () => {
                       </button>
                     </nav>
                   </div>
-                  )}
-                  </div>
-                  </div>
-                  </div>
-                  </main>
-
-                  {/* Footer */}
-                  <footer className="bg-white mt-16 pt-12 pb-8 border-t border-gray-200">
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {/* Información de la empresa */}
-                  <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Acerca de {company.name}</h3>
-                  <p className="text-gray-600 mb-4">{company.description}</p>
-                  <div className="flex items-center text-gray-600 mb-2">
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+        
+        {/* Footer */}
+        <footer className="bg-[#fcdef8] mt-16 pt-12 pb-8 border-t border-gray-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Información de la empresa */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Acerca de {company.name}</h3>
+                <p className="text-gray-600 mb-4">{company.description}</p>
+                <div className="flex items-center text-gray-600 mb-2">
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <span>{company.location}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
+                </div>
+                <div className="flex items-center text-gray-600">
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                   <span>{company.phone}</span>
-                  </div>
-                  </div>
+                </div>
+              </div>
 
-                  {/* Enlaces rápidos */}
-                  <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Categorías populares</h3>
-                  <ul className="space-y-2">
+              {/* Enlaces rápidos */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Categorías populares</h3>
+                <ul className="space-y-2">
                   {Object.values(categoryGroups).flat().slice(0, 6).map(category => (
                     <li key={category}>
                       <button
@@ -716,19 +719,19 @@ const Store = () => {
                           setCurrentPage(0);
                           window.scrollTo({top: 0, behavior: "smooth"});
                         }}
-                        className="text-gray-600 hover:text-pink-600 transition-colors"
+                        className="text-gray-600 hover:text-pink-600 transition-colors cursor-pointer"
                       >
                         {getCategoryLabel(category)}
                       </button>
                     </li>
                   ))}
-                  </ul>
-                  </div>
+                </ul>
+              </div>
 
-                  {/* Redes sociales y contacto */}
-                  <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contacto y redes sociales</h3>
-                  <div className="flex space-x-4 mb-4">
+              {/* Redes sociales y contacto */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Contacto y redes sociales</h3>
+                <div className="flex space-x-4 mb-4">
                   {company.instagram && (
                     <a 
                       href={`https://instagram.com/${company.instagram}`}
@@ -754,32 +757,32 @@ const Store = () => {
                       </svg>
                     </a>
                   )}
-                  </div>
+                </div>
 
-                  <button
+                <button
                   onClick={() => {
                     const whatsappURL = `https://wa.me/${company.whatsapp}?text=${encodeURIComponent(`Hola ${company.name}, me gustaría hacer una consulta sobre sus productos.`)}`;
                     window.open(whatsappURL, "_blank");
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
+                  className="inline-flex items-center px-4 py-2 cursor-pointer border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
                   >
                   <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                   </svg>
                   Consultar por WhatsApp
-                  </button>
-                  </div>
-                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-12 pt-8 border-t border-gray-400 text-center w-full">
+            <p className="text-sm text-gray-500">
+              &copy; {new Date().getFullYear()} {company.name}. Todos los derechos reservados.
+            </p>
+          </div>
+        </footer>
+    </div>
+  );
+};
 
-                  <div className="mt-12 pt-8 border-t border-gray-200 text-center">
-                  <p className="text-sm text-gray-500">
-                  &copy; {new Date().getFullYear()} {company.name}. Todos los derechos reservados.
-                  </p>
-                  </div>
-                  </div>
-                  </footer>
-                  </div>
-                  );
-                  };
-
-                  export default Store;                    
+export default Store;                    

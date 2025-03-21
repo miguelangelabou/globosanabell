@@ -1,117 +1,169 @@
 "use client";
 import { useState, useEffect } from "react";
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, fetchSignInMethodsForEmail } from "firebase/auth";
-import { auth } from "../../config/firebaseConfig";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import { getDocuments } from "../../utils/Database"
 import { isValidEmail } from "../../utils/Validations";
+import Company from "../../interfaces/Company"
+
+const company = (await getDocuments("company") as Company[])[0];
 
 const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { login, user } = useAuth();
+  const { logout, login, user, sendPasswordResetEmail  } = useAuth();
   const router = useRouter();
+
+  console.log(user ? user : null)
+
+  logout()
 
   useEffect(() => {
     if (user) {
-      router.push("/");
+      router.push("/admin");
     }
-  }, [user]);
+  }, [user, router]);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
+    
+    if (!email || !password) {
+      setError("Por favor complete todos los campos");
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!isValidEmail(email)) {
+      setError("Por favor ingrese un correo electrónico válido");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        window.location.assign("/");
-      } else {
-        await login(email, password);
-        window.location.assign("/");
-      }
+      await login(email, password);
+      router.push("/admin");
     } catch (err: any) {
-        if(err.message === "Firebase: Error (auth/email-already-in-use).") {
-            setError("Ya existe una cuenta asociada a ese correo electrónico.")
-            return;
-        } else if(err.message === "Firebase: Error (auth/invalid-credential).") {
-            setError("Correo Electrónico o contraseña incorrectos.")
-            return;
-        }
-      setError(err.message);
+      if (err.message === "Firebase: Error (auth/email-already-in-use).") {
+        setError("Ya existe una cuenta asociada a ese correo electrónico.");
+      } else if (err.message === "Firebase: Error (auth/invalid-credential).") {
+        setError("Correo electrónico o contraseña incorrectos.");
+      } else if (err.message === "Firebase: Error (auth/too-many-requests).") {
+        setError("Demasiados intentos fallidos. Intente más tarde o restablezca su contraseña.");
+      } else {
+        setError("Error al iniciar sesión. Por favor intente nuevamente.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if(!email || !isValidEmail(email)) {
-        setError("Ingresa el correo electrónico válido.");
-        return;
+    if (!email || !isValidEmail(email)) {
+      setError("Por favor ingrese un correo electrónico válido para restablecer su contraseña");
+      return;
     }
 
-    setError(null);
-    setMessage(null);
+    setIsLoading(true);
     try {
-        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-        if (signInMethods.length > 0) {
-          await sendPasswordResetEmail(auth, email);
-          setMessage("Se ha enviado un enlace para restablecer la contraseña a tu correo.");
-        } else {
-          setError("No existe una cuenta asociada a este correo.");
-        }
-    } catch (err: any) {
-      setError(err.message);
+      await sendPasswordResetEmail(email);
+      setMessage("Se ha enviado un correo para restablecer su contraseña");
+      setError(null);
+    } catch (err) {
+      setError("Error al enviar el correo de recuperación. Intente nuevamente.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-6 rounded-lg shadow-md w-80">
-        <h2 className="text-xl font-semibold mb-4 text-center">
-          {isRegister ? "Crear Cuenta" : "Iniciar Sesión"}
-        </h2>
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
-        {message && <p className="text-green-500 text-sm mb-2">{message}</p>}
-        <form onSubmit={handleAuth} className="flex flex-col">
-          <input
-            type="email"
-            placeholder="Correo Electrónico"
-            className="border p-2 mb-2 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            className="border p-2 mb-2 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-            {isRegister ? "Registrarse" : "Ingresar"}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <div className="mb-6 text-center">
+          <img src={company?.logoURL} className="rounded-full w-32 h-32 mx-auto"/>
+          <h1 className="text-2xl font-bold text-gray-800">Administración de {company.name}</h1>
+          <p className="text-gray-600 mt-2">Ingrese sus credenciales para acceder</p>
+        </div>
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+        
+        {message && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {message}
+          </div>
+        )}
+        
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Correo Electrónico
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="ejemplo@correo.com"
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="********"
+              required
+            />
+          </div>
+          
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center">
+              <input
+                id="remember"
+                type="checkbox"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="remember" className="ml-2 block text-gray-700">
+                Recordarme
+              </label>
+            </div>
+            
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              ¿Olvidó su contraseña?
+            </button>
+          </div>
+          
+          <button
+            type="submit"
+            className={`w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+              isLoading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+            disabled={isLoading}
+          >
+            {isLoading ? "Procesando..." : "Acceder"}
           </button>
         </form>
-        {!isRegister && (
-          <p
-            className="text-blue-500 text-sm text-center cursor-pointer mt-4"
-            onClick={handleForgotPassword}
-          >
-            ¿Olvidaste tu contraseña?
-          </p>
-        )}
-        <p className="text-sm text-center">
-          {isRegister ? "¿Ya tienes cuenta? " : "¿No tienes cuenta? "}
-          <span
-            className="text-blue-500 cursor-pointer"
-            onClick={() => setIsRegister(!isRegister)}
-          >
-            {isRegister ? "Inicia sesión" : "Regístrate"}
-          </span>
-        </p>
       </div>
     </div>
   );

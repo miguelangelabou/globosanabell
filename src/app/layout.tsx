@@ -4,7 +4,6 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { getDocuments } from "../utils/Database";
 import Company from "../interfaces/Company"
 
-
 const company = (await getDocuments("company") as Company[])[0];
 
 export const metadata: Metadata = {

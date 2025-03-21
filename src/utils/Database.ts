@@ -46,7 +46,12 @@ export const categories = [
   { value: "detalles", label: "Detalles personalizados" },
   { value: "cumpleaños", label: "Cumpleaños" },
   { value: "bodas", label: "Bodas y eventos" },
-  { value: "desayunos", label: "Desayunos sorpresa" },
   { value: "cestas", label: "Cestas regalo" },
   { value: "complementos", label: "Complementos" },
 ];
+
+export const categoryGroups = {
+    "Fechas Especiales": ["14_febrero", "21_marzo", "21_septiembre", "cumpleaños", "bodas"],
+    "Productos Destacados": ["regalos", "detalles", "peluches", "flores", "ramos", "globos"],
+    "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "desayunos", "cestas", "complementos"]
+};
