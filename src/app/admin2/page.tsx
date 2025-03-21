@@ -1,16 +1,34 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { getDocuments, getDocument, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
+import { getDocuments, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
 import { Timestamp } from "firebase/firestore";
 import Company from "../../interfaces/Company"
+import Product from "../../interfaces/Product";
+import Category from "../../interfaces/Category";
+import Sale from "../../interfaces/Sale"
 
 interface CompanyWithFormattedTimes extends Company {
     openHourFormatted?: string;
     closeHourFormatted?: string;
-  }
+}
+
+interface ProductModalProps {
+  product: Product;
+  onSave: (product: Product) => void;
+  onClose: () => void;
+  categories: Category[];
+}
+
+interface SaleDetailsModalProps {
+  sale: Sale;
+  onClose: () => void;
+  formatDateTime: (date: Date | string) => string;
+  getTotalAmount: (sale: Sale) => number;
+}
 
 // Componentes de UI
-const Sidebar = ({ activeSection }) => {
+const Sidebar = ({ activeSection }: { activeSection: string }) => {
   return (
     <div className="bg-gray-800 text-white w-64 py-6 flex flex-col h-screen">
       <div className="px-6 mb-8">
@@ -50,7 +68,7 @@ const Sidebar = ({ activeSection }) => {
 
 // Panel principal
 const AdminPanel = () => {
-  const [activeSection, setActiveSection] = useState("empresa");
+  const [activeSection, setActiveSection] = useState<string>("empresa");
 
   return (
     <Router>
@@ -58,7 +76,7 @@ const AdminPanel = () => {
         <Sidebar activeSection={activeSection} />
         <div className="flex-1 p-8 bg-gray-100 overflow-auto h-screen">
           <Routes>
-            <Route path="/" element={<CompanyInfo setActiveSection={setActiveSection} />} />
+            <Route path="/admin2" element={<CompanyInfo setActiveSection={setActiveSection} />} />
             <Route path="/productos" element={<ProductsManagement setActiveSection={setActiveSection} />} />
             <Route path="/ventas" element={<SalesManagement setActiveSection={setActiveSection} />} />
           </Routes>
@@ -69,7 +87,7 @@ const AdminPanel = () => {
 };
 
 // Componente para gestionar la información de la empresa
-const CompanyInfo = ({ setActiveSection }) => {
+const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
   const [company, setCompany] = useState<CompanyWithFormattedTimes>({
     id: "",
     name: "",
@@ -350,8 +368,8 @@ const CompanyInfo = ({ setActiveSection }) => {
 };
 
 // Componente para la gestión de productos
-const ProductsManagement = ({ setActiveSection }) => {
-  const [products, setProducts] = useState([]);
+const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: "", type: "" });
   const [searchTerm, setSearchTerm] = useState("");
@@ -366,7 +384,7 @@ const ProductsManagement = ({ setActiveSection }) => {
   
   const fetchProducts = async () => {
     try {
-      const data = await getDocuments("products");
+      const data = await getDocuments("products") as Product[];
       setProducts(data);
       setLoading(false);
     } catch (error) {
@@ -383,7 +401,7 @@ const ProductsManagement = ({ setActiveSection }) => {
     return matchesSearch && matchesCategory;
   });
   
-  const handleDeleteProduct = async (id) => {
+  const handleDeleteProduct = async (id: string) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este producto?")) {
       setLoading(true);
       try {
@@ -400,7 +418,7 @@ const ProductsManagement = ({ setActiveSection }) => {
     }
   };
   
-  const handleToggleActive = async (product) => {
+  const handleToggleActive = async (product: Product) => {
     try {
       const updatedProduct = { ...product, active: !product.active };
       await updateDocument("products", product.id, { active: updatedProduct.active });
@@ -422,7 +440,7 @@ const ProductsManagement = ({ setActiveSection }) => {
     }
   };
   
-  const openProductModal = (product = null) => {
+  const openProductModal = (product = (null)) => {
     setCurrentProduct(product || {
       id: "",
       name: "",
@@ -441,7 +459,7 @@ const ProductsManagement = ({ setActiveSection }) => {
     setCurrentProduct(null);
   };
   
-  const saveProduct = async (productData) => {
+  const saveProduct = async (productData: Product) => {
     setLoading(true);
     try {
       if (productData.id) {
@@ -546,8 +564,8 @@ const ProductsManagement = ({ setActiveSection }) => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProducts.length > 0 ? (
-                filteredProducts.map(product => (
-                  <tr key={product.id}>
+                filteredProducts.map((product, index) => (
+                  <tr key={index}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {product.imageURL ? (
                         <img src={product.imageURL} alt={product.name} className="h-12 w-12 object-cover rounded" />
@@ -561,7 +579,7 @@ const ProductsManagement = ({ setActiveSection }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {categories.find(c => c.value === product.category)?.label || product.category}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">${product.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">${product.price}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{product.soldTimes || 0}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -596,7 +614,7 @@ const ProductsManagement = ({ setActiveSection }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No se encontraron productos
                   </td>
                 </tr>
@@ -618,24 +636,26 @@ const ProductsManagement = ({ setActiveSection }) => {
 };
 
 // Componente Modal para editar/crear producto
-const ProductModal = ({ product, onSave, onClose }) => {
+const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, categories }) => {
   const [productData, setProductData] = useState(product);
-  
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (type === "checkbox") {
-      setProductData({ ...productData, [name]: checked });
-    } else if (name === "price") {
-      setProductData({ ...productData, [name]: parseFloat(value) || 0 });
-    } else {
-      setProductData({ ...productData, [name]: value });
-    }
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSave(productData); // Guardar datos del producto
   };
   
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(productData);
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+  
+    if (type === "checkbox" && e.target instanceof HTMLInputElement) {
+      setProductData((prev) => ({ ...prev, [name]: e.target.checked }));
+    } else if (name === "price") {
+      setProductData((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    } else {
+      setProductData((prev) => ({ ...prev, [name]: value }));
+    }
   };
   
   return (
@@ -736,7 +756,7 @@ const ProductModal = ({ product, onSave, onClose }) => {
                 name="description"
                 value={productData.description}
                 onChange={handleInputChange}
-                rows="3"
+                rows={3}
                 className="w-full p-2 border rounded"
               ></textarea>
             </div>
@@ -764,12 +784,12 @@ const ProductModal = ({ product, onSave, onClose }) => {
 };
 
 // Componente para el registro de ventas
-const SalesManagement = ({ setActiveSection }) => {
-  const [sales, setSales] = useState([]);
+const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
+  const [sales, setSales] = useState<Sale>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [currentSale, setCurrentSale] = useState(null);
+  const [currentSale, setCurrentSale] = useState<Sale | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   useEffect(() => {
@@ -779,7 +799,7 @@ const SalesManagement = ({ setActiveSection }) => {
   
   const fetchSales = async () => {
     try {
-      const data = await getDocuments("sales");
+      const data = await getDocuments("sales") as Sale[];
       // Ordenar por fecha, más recientes primero
       data.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
       setSales(data);
@@ -790,7 +810,7 @@ const SalesManagement = ({ setActiveSection }) => {
     }
   };
   
-  const formatDate = (timestamp) => {
+  const formatDate = (timestamp: Timestamp) => {
     if (!timestamp) return "";
     
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
@@ -801,7 +821,7 @@ const SalesManagement = ({ setActiveSection }) => {
     });
   };
   
-  const formatDateTime = (timestamp) => {
+  const formatDateTime = (timestamp: Timestamp) => {
     if (!timestamp) return "";
     
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
@@ -833,7 +853,7 @@ const SalesManagement = ({ setActiveSection }) => {
     return (nameMatch || emailMatch || phoneMatch || dniMatch) && dateMatch;
   });
   
-  const viewSaleDetails = (sale) => {
+  const viewSaleDetails = (sale: Sale) => {
     setCurrentSale(sale);
     setIsModalOpen(true);
   };
@@ -843,7 +863,7 @@ const SalesManagement = ({ setActiveSection }) => {
     setCurrentSale(null);
   };
   
-  const getTotalAmount = (sale) => {
+  const getTotalAmount = (sale: Sale) => {
     return sale.product.reduce((total, item) => total + (item.price * item.amount), 0);
   };
   
@@ -933,7 +953,7 @@ const SalesManagement = ({ setActiveSection }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                     No se encontraron ventas
                   </td>
                 </tr>
@@ -956,7 +976,7 @@ const SalesManagement = ({ setActiveSection }) => {
 };
 
 // Modal para ver detalles de la venta
-const SaleDetailsModal = ({ sale, onClose, formatDateTime, getTotalAmount }) => {
+const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ sale, onClose, formatDateTime, getTotalAmount }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-y-auto max-h-90vh">
@@ -973,7 +993,7 @@ const SaleDetailsModal = ({ sale, onClose, formatDateTime, getTotalAmount }) => 
           <div className="border-t border-gray-200 pt-4">
             <div className="mb-4">
               <h4 className="font-medium mb-2">Información de la Venta</h4>
-              <p className="text-sm text-gray-700"><strong>Fecha:</strong> {formatDateTime(sale.createdAt)}</p>
+              <p className="text-sm text-gray-700"><strong>Fecha:</strong> {formatDateTime(sale.createdAt.toDate())}</p>
               <p className="text-sm text-gray-700"><strong>ID:</strong> {sale.id}</p>
             </div>
             
@@ -1018,7 +1038,7 @@ const SaleDetailsModal = ({ sale, onClose, formatDateTime, getTotalAmount }) => 
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-50">
-                      <td colSpan="3" className="px-4 py-2 text-right font-medium">
+                      <td colSpan={3} className="px-4 py-2 text-right font-medium">
                         Total:
                       </td>
                       <td className="px-4 py-2 font-medium">
