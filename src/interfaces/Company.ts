@@ -6,16 +6,12 @@ interface Company {
     description: string;
     phone: string;
     logoURL: string;
-    openHour: Timestamp | null;
-    closeHour: Timestamp | null;
-    openHourFormatted?: string;
-    closeHourFormatted?: string;
-    whatsapp: string;
+    weekdaySchedule: string;
+    weekendSchedule: string;
     instagram: string;
     location: string;
     locationMaps: string;
     isOpen: boolean;
-    availabilityToday: boolean;
     paymentAccount: string;
 }
 

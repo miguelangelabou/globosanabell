@@ -53,5 +53,5 @@ export const categories = [
 export const categoryGroups = {
     "Fechas Especiales": ["14_febrero", "21_marzo", "21_septiembre", "cumpleaños", "bodas"],
     "Productos Destacados": ["regalos", "detalles", "peluches", "flores", "ramos", "globos"],
-    "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "desayunos", "cestas", "complementos"]
+    "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "cestas", "complementos"]
 };

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link"
 import { getDocuments, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
 import { Timestamp } from "firebase/firestore";
@@ -158,7 +158,7 @@ const MobileNavbar = ({
           <Image
             src={company.logoURL}
             alt={company.name}
-            className="w-8 h-8"
+            className="w-8 h-8 rounded-full"
             width={32}
             height={32}
           />
@@ -200,7 +200,6 @@ const AdminPanel = () => {
     fetch();
   }, []);
 
-  // Close sidebar when window resizes above small breakpoint
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 640) {
@@ -259,18 +258,20 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     description: "",
     phone: "",
     logoURL: "",
-    openHour: Timestamp.now(),
-    closeHour: Timestamp.now(),
-    whatsapp: "",
+    weekdaySchedule: "Cargando...",
+    weekendSchedule: "Cargando...",
     instagram: "",
     location: "",
     locationMaps: "",
     isOpen: false,
-    availabilityToday: false,
     paymentAccount: ""
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
 
   const fetchCompanyData = useCallback(async () => {
     try {
@@ -283,18 +284,17 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               description: companyData.description || "",
               phone: companyData.phone || "",
               logoURL: companyData.logoURL || "",
-              openHour: companyData.openHour || Timestamp.now(),
-              closeHour: companyData.closeHour || Timestamp.now(),
-              whatsapp: companyData.whatsapp || "",
+              weekdaySchedule: companyData.weekdaySchedule || "Cargando...",
+              weekendSchedule: companyData.weekendSchedule || "Cargando...",
               instagram: companyData.instagram || "",
               location: companyData.location || "",
               locationMaps: companyData.locationMaps || "",
               isOpen: companyData.isOpen || false,
-              availabilityToday: companyData.availabilityToday || false,
-              paymentAccount: companyData.paymentAccount || "",
-              openHourFormatted: formatTimestampForTimeInput(companyData.openHour),
-              closeHourFormatted: formatTimestampForTimeInput(companyData.closeHour)
+              paymentAccount: companyData.paymentAccount || ""
           });
+            if (companyData.logoURL) {
+              setPreviewImage(companyData.logoURL);
+            }
         }
         setLoading(false);
     } catch (error) {
@@ -309,29 +309,75 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     fetchCompanyData();
   }, [setActiveSection, fetchCompanyData]);
 
-  const formatTimestampForTimeInput = (timestamp: Timestamp | null) => {
-    if (!timestamp) return "";
-    
-    const date = timestamp.toDate();
-    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      (fileInputRef.current as HTMLInputElement).click();
+    }
   };
 
-  const createTimestampFromTimeString = (timeString: string) => {
-    if (!timeString) return null;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if(!e.target.files) return;
+
+    const file = e.target.files[0];
+
+    if(!file) return;
     
-    const [hours, minutes] = timeString.split(":").map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return Timestamp.fromDate(date);
+    const validTypes = ["image/webp", "image/png", "image/jpeg", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      alert("Por favor seleccione un archivo: webp, png, jpeg o jpg");
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert("El archivo debe ser menor a 2MB");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setPreviewImage(e.target?.result as string);
+      }
+      setLogoFile(file);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
     
     if (type === "checkbox") {
-      setCompany({ ...company, [name]: checked });
+      setCompany({ ...company, [name]: (e.target as HTMLInputElement).checked });
     } else {
       setCompany({ ...company, [name]: value });
+    }
+  };
+
+  const uploadImageToImgur = async (file: File): Promise<string> => {
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('https://api.imgur.com/3/image', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Client-ID 8222f161bcef479'
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al subir la imagen a Imgur');
+      }
+      
+      const data = await response.json();
+      return data.data.link;
+    } catch (error) {
+      console.error('Error al subir imagen a Imgur:', error);
+      throw error;
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -340,22 +386,25 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     setLoading(true);
     
     try {
-        const updatedData = {
-            ...company,
-            openHour: company.openHourFormatted ? createTimestampFromTimeString(company.openHourFormatted) : Timestamp.now(),
-            closeHour: company.closeHourFormatted ? createTimestampFromTimeString(company.closeHourFormatted) : Timestamp.now()
-        };
-        
-        // Eliminar las propiedades formateadas
-        delete updatedData.openHourFormatted;
-        delete updatedData.closeHourFormatted;
+        let updatedCompany = { ...company };
+        if (logoFile) {
+          try {
+            const imgurUrl = await uploadImageToImgur(logoFile);
+            updatedCompany.logoURL = imgurUrl;
+            setCompany(updatedCompany);
+          } catch (error) {
+            setMessage({ text: "Error al subir la imagen a Imgur", type: "error" });
+            setLoading(false);
+            return;
+          }
+        }
         
         if (company.id) {
-            await updateDocument("company", company.id, updatedData);
+            await updateDocument("company", company.id, updatedCompany);
             setMessage({ text: "Información actualizada correctamente", type: "success" });
         } else {
-            const newId = await addDocument("company", updatedData);
-            setCompany({ ...updatedData, id: newId });
+            const newId = await addDocument("company", updatedCompany);
+            setCompany({ ...updatedCompany, id: newId });
             setMessage({ text: "Información guardada correctamente", type: "success" });
         }
     } catch (error) {
@@ -384,89 +433,93 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block mb-2 font-medium">Nombre de la Empresa</label>
+            <div>
+              <label className="block mb-2 font-medium">Nombre de la Empresa</label>
+              <input
+                type="text"
+                name="name"
+                value={company.name}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block mb-2 font-medium">Teléfono</label>
+              <input
+                type="text"
+                name="phone"
+                value={company.phone}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            
+            <div>
+              <label className="block mb-2 font-medium">Instagram</label>
+              <input
+                type="text"
+                name="instagram"
+                value={company.instagram}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">Logo de la Empresa</label>
+            <div 
+              className="h-32 flex items-center justify-center cursor-pointer mt-12"
+              onClick={handleImageClick}
+            >
+              <div className="w-48 h-48 rounded-full border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
+                {previewImage ? (
+                  <img 
+                    src={previewImage} 
+                    alt="Logo preview" 
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center text-gray-500">
+                    <span className="text-lg">+</span>
+                  </div>
+                )}
+              </div>
+              <div className="ml-4 text-sm text-gray-500">
+                <p>Click para actualizar logo</p>
+                <p className="text-xs">(webp, png, jpeg, jpg - máx 2MB)</p>
+                {logoFile && <p className="text-xs text-green-600">Nueva imagen seleccionada</p>}
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              name="logoFile"
+              onChange={handleImageChange}
+              accept=".webp,.png,.jpeg,.jpg"
+              className="hidden"
+            />
+          </div>
+          
+          <div>
+            <label className="block mb-2 font-medium">Horario Dia de Semana</label>
             <input
               type="text"
-              name="name"
-              value={company.name}
+              name="weekdaySchedule"
+              value={company.weekdaySchedule}
               onChange={handleInputChange}
               className="w-full p-2 border rounded"
-              required
             />
           </div>
           
           <div>
-            <label className="block mb-2 font-medium">Teléfono</label>
+            <label className="block mb-2 font-medium">Horario Fin de Semana</label>
             <input
               type="text"
-              name="phone"
-              value={company.phone}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-2 font-medium">URL del Logo</label>
-            <input
-              type="text"
-              name="logoURL"
-              value={company.logoURL}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-2 font-medium">WhatsApp</label>
-            <input
-              type="text"
-              name="whatsapp"
-              value={company.whatsapp}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-2 font-medium">Instagram</label>
-            <input
-              type="text"
-              name="instagram"
-              value={company.instagram}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-2 font-medium">Cuenta de Pago</label>
-            <input
-              type="text"
-              name="paymentAccount"
-              value={company.paymentAccount}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-2 font-medium">Hora de Apertura</label>
-            <input
-              type="time"
-              name="openHourFormatted"
-              value={company.openHourFormatted || ""}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block mb-2 font-medium">Hora de Cierre</label>
-            <input
-              type="time"
-              name="closeHourFormatted"
-              value={company.closeHourFormatted || ""}
+              name="weekendSchedule"
+              value={company.weekendSchedule}
               onChange={handleInputChange}
               className="w-full p-2 border rounded"
             />
@@ -478,7 +531,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <textarea
             name="description"
             value={company.description}
-            onChange={() => handleInputChange}
+            onChange={handleInputChange}
             rows={3}
             className="w-full p-2 border rounded"
           ></textarea>
@@ -489,7 +542,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <textarea
             name="location"
             value={company.location}
-            onChange={() => handleInputChange}
+            onChange={handleInputChange}
             rows={2}
             className="w-full p-2 border rounded"
           ></textarea>
@@ -518,27 +571,16 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
             />
             <label htmlFor="isOpen">Negocio Abierto</label>
           </div>
-          
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="availabilityToday"
-              name="availabilityToday"
-              checked={company.availabilityToday}
-              onChange={handleInputChange}
-              className="mr-2"
-            />
-            <label htmlFor="availabilityToday">Disponible Hoy</label>
-          </div>
         </div>
         
         <div className="mt-6">
           <button
             type="submit"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-            disabled={loading}
+            disabled={loading || uploadingImage}
           >
-            {loading ? "Guardando..." : "Guardar Cambios"}
+            {loading ? "Guardando..." : 
+             uploadingImage ? "Subiendo imagen..." : "Guardar Cambios"}
           </button>
         </div>
       </form>
@@ -842,10 +884,54 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
 // Componente Modal para editar/crear producto
 const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, categories }) => {
   const [productData, setProductData] = useState(product);
+  const [previewImage, setPreviewImage] = useState<string>(product.imageURL);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" });
+  const fileInputRef = useRef(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const uploadImageToImgur = async (file: File): Promise<string> => {
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('https://api.imgur.com/3/image', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Client-ID 8222f161bcef479'
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al subir la imagen a Imgur');
+      }
+      
+      const data = await response.json();
+      return data.data.link;
+    } catch (error) {
+      console.error('Error al subir imagen a Imgur:', error);
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSave(productData); // Guardar datos del producto
+    setUploadingImage(true);
+
+    if (logoFile) {
+      try {
+        const imgurUrl = await uploadImageToImgur(logoFile);
+        productData.imageURL = imgurUrl;
+      } catch (error) {
+        setUploadingImage(false);
+        return;
+      }
+    }
+    onSave(productData);
   };
   
   const handleInputChange = (
@@ -862,6 +948,41 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
       setProductData((prev) => ({ ...prev, [name]: value }));
     }
   };
+
+    
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      (fileInputRef.current as HTMLInputElement).click();
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if(!e.target.files) return;
+
+    const file = e.target.files[0];
+
+    if(!file) return;
+    
+    const validTypes = ["image/webp", "image/png", "image/jpeg", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      alert("Por favor seleccione un archivo: webp, png, jpeg o jpg");
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert("El archivo debe ser menor a 2MB");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setPreviewImage(e.target?.result as string);
+      }
+      setLogoFile(file);
+    };
+    reader.readAsDataURL(file);
+  };
   
   
   return (
@@ -875,72 +996,98 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block mb-1 font-medium">Nombre</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={productData?.name}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block mb-1 font-medium">Categoría</label>
-                <select
-                  name="category"
-                  value={productData?.category}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded cursor-pointer"
-                  required
-                >
-                  <option value="">Seleccionar categoría</option>
-                  {categories.map(category => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block mb-1 font-medium">Precio</label>
-                <input
-                  type="number"
-                  name="price"
-                  value={productData?.price}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block mb-1 font-medium">URL de la Imagen</label>
-                <input
-                  type="text"
-                  name="imageURL"
-                  value={productData?.imageURL}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              
-              {product?.id && (
                 <div>
-                  <label className="block mb-1 font-medium">Veces Vendido</label>
+                  <label className="block mb-1 font-medium">Nombre</label>
                   <input
-                    type="number"
-                    name="soldTimes"
-                    value={productData?.soldTimes || 0}
-                    className="w-full p-2 border rounded bg-gray-200"
-                    readOnly
+                    type="text"
+                    name="name"
+                    value={productData?.name}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded"
+                    required
                   />
                 </div>
-              )}
+                
+                <div>
+                  <label className="block mb-1 font-medium">Categoría</label>
+                  <select
+                    name="category"
+                    value={productData?.category}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded cursor-pointer"
+                    required
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categories.map(category => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block mb-1 font-medium">Precio</label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={productData?.price}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded"
+                    required
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block mb-2 font-medium">Imagen del Producto</label>
+                  <div 
+                    className="h-32 flex items-center justify-center cursor-pointer mt-12"
+                    onClick={handleImageClick}
+                  >
+                    <div className="w-48 h-48 border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
+                      {previewImage ? (
+                        <img 
+                          src={previewImage} 
+                          alt="Logo preview" 
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center text-gray-500">
+                          <span className="text-lg">+</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-4 text-sm text-gray-500">
+                      <p>Click para actualizar imagen</p>
+                      <p className="text-xs">(webp, png, jpeg, jpg - máx 2MB)</p>
+                      {logoFile && <p className="text-xs text-green-600">Nueva imagen seleccionada</p>}
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    name="logoFile"
+                    onChange={handleImageChange}
+                    accept=".webp,.png,.jpeg,.jpg"
+                    className="hidden"
+                  />
+                </div>
+                
+                {product?.id && (
+                  <div>
+                    <label className="block mb-1 font-medium">Veces Vendido</label>
+                    <input
+                      type="number"
+                      name="soldTimes"
+                      value={productData?.soldTimes || 0}
+                      className="w-full p-2 border rounded bg-gray-200"
+                      readOnly
+                    />
+                  </div>
+                )}
               
               <div className="flex items-center h-full">
                 <input
@@ -975,10 +1122,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
                 Cancelar
               </button>
               <button
+                id="button_submit"
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
               >
-                {product?.id ? "Actualizar" : "Crear"}
+                {uploadingImage ? "Subiendo imagen..." : (product?.id ? "Actualizar" : "Crear")}
               </button>
             </div>
           </form>

@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { getDocuments, categories, categoryGroups } from "../utils/Database";
-import { Timestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import Product from "../interfaces/Product";
 import Company from "../interfaces/Company";
@@ -19,13 +19,12 @@ const Store = () => {
     locationMaps: "Cargando...",
     paymentAccount: "Cargando...",
     instagram: "Cargando...",
-    whatsapp: "Cargando...",
     isOpen: false,
-    availabilityToday: false,
-    openHour: Timestamp.now(),
-    closeHour: Timestamp.now(),
+    weekdaySchedule: "Cargando...",
+    weekendSchedule: "Cargando...",
   });
   
+  const router = useRouter()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,7 +32,7 @@ const Store = () => {
   const [showCart, setShowCart] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  const [sortOption, setSortOption] = useState("featured"); // "featured", "price-low-high", "price-high-low", "popular"
+  const [sortOption, setSortOption] = useState("featured");
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 1000});
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>(() => {
     const savedCart = localStorage.getItem("cart");
@@ -187,45 +186,54 @@ const Store = () => {
       setWishlist([...wishlist, productId]);
     }
   };
+
+  // Abrir modal de imagen expandida
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [productSelected, setProductedSelected] = useState<Product | null>(null);
+
+  const closeModal = () => {
+    setProductedSelected(null)
+    setIsModalOpen(false);
+  }
+  const openModal = (product: Product) => {
+    setProductedSelected(product)
+    setIsModalOpen(true);
+  }
   
   // Calcular total del carrito
   const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   
-  // Proceder al checkout via WhatsApp
-  const checkout = () => {
+  // Proceder al checkout
+  const checkout = async () => {
     if (cart.length === 0) return;
-    
-    const message = `Hola ${company.name}, me gustaría realizar el siguiente pedido:\n\n${
-      cart.map(item => `- ${item.quantity}x ${item.product.name} (${item.product.price}€ c/u)`).join("\n")
-    }\n\nTotal: ${cartTotal}€`;
-    
-    const whatsappURL = `https://wa.me/${company.whatsapp}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappURL, "_blank");
-  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
-      </div>
-    );
-  }
+    let orderMessage = "Hola, me gustaría realizar el siguiente pedido:\n\n";
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-6 bg-red-100 rounded-lg">
-          <h3 className="text-xl text-red-700 font-semibold mb-2">Error</h3>
-          <p>{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
+    cart.forEach((item, index) => {
+      orderMessage += `${index + 1}. ${item.product.name} (ID: ${item.product.id})\n`;
+      orderMessage += `   Cantidad: ${item.quantity}\n`;
+      orderMessage += `   Precio unitario: €${item.product.price.toFixed(2)}\n\n`;
+    });
+    
+    const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    orderMessage += `Total: €${total.toFixed(2)}\n\n`;
+    
+    orderMessage += "Deseo personalizarle lo siguiente:";
+    
+    const whatsappURL = `https://wa.me/${company.phone}?text=${encodeURIComponent(orderMessage)}`;
+    
+    localStorage.setItem("pendingOrder", JSON.stringify({
+      cart: cart,
+      timestamp: new Date().toISOString(),
+      total: total
+    }));
+    
+    window.open(whatsappURL, '_blank');
+    
+    setCart([]);
+    localStorage.removeItem("cart");
+    
+    router.push('/thank-you');
   }
 
   return (
@@ -546,7 +554,7 @@ const Store = () => {
                         <p>Subtotal</p>
                         <p>{cartTotal}€</p>
                       </div>
-                      <p className="text-sm text-gray-500 mb-6">Envío y descuentos calculados al finalizar la compra.</p>
+                      <p className="text-sm text-gray-600 mb-4">Precios de envio y descuentos se obtendran por WhatsApp.</p>
                       <button
                         onClick={checkout}
                         className="w-full flex items-center cursor-pointer justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-pink-600 hover:bg-pink-700"
@@ -589,6 +597,7 @@ const Store = () => {
                     <div key={index} className="bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
                       <div className="relative h-56 overflow-hidden">
                         <Image 
+                          onClick={()=> openModal(product)} 
                           src={product.imageURL} 
                           alt={product.name} 
                           layout="fill"
@@ -638,6 +647,7 @@ const Store = () => {
                           setSelectedCategory("");
                           setPriceRange({min: 0, max: 1000});
                           setCurrentPage(0);
+                          setSortOption("featured")
                         }}
                         className="inline-flex items-center justify-center cursor-pointer px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
                       >
@@ -645,6 +655,32 @@ const Store = () => {
                       </button>
                     </div>
                   </div>
+                  )}
+                  
+                  {/*Modal de Imagen Expandida*/}
+                  {isModalOpen && productSelected && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={closeModal}>
+                      <div className="relative max-w-4xl max-h-screen p-4">
+                        <button 
+                          className="absolute flex items-center text-lg justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeModal();
+                          }}
+                        >
+                          ×
+                        </button>
+                        <div className="relative w-full h-full" onClick={e => e.stopPropagation()}>
+                          <Image 
+                            src={productSelected.imageURL} 
+                            alt={productSelected.name}
+                            width={800}
+                            height={600}
+                            className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
 
                   {/* Paginación */}
@@ -703,15 +739,33 @@ const Store = () => {
               {/* Información de la empresa */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Acerca de {company.name}</h3>
-                <p className="text-gray-600 mb-4">{company.description}</p>
-                <div className="flex items-center text-gray-600 mb-2">
-                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <p className="text-xs text-gray-600 mb-4">{company.description}</p>
+                <span className="text-sm text-gray-600 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12a.75.75 0 00-1.5 0v4a.75.75 0 00.22.53l3 3a.75.75 0 101.06-1.06L10.75 10.5V6z" clipRule="evenodd" />
+                  </svg>
+                  Lunes a Viernes:<br />{company.weekdaySchedule}
+                </span>
+                <br />
+                <span className="text-sm text-gray-600 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12a.75.75 0 00-1.5 0v4a.75.75 0 00.22.53l3 3a.75.75 0 101.06-1.06L10.75 10.5V6z" clipRule="evenodd" />
+                  </svg>
+                  Sábado y Domingo:<br />{company.weekendSchedule}
+                </span>
+                <a 
+                  href={company.locationMaps}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-gray-600 text-sm mb-2 mt-4 hover:text-pink-600 transition-colors"
+                >
+                  <svg className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <span>{company.location}</span>
-                </div>
-                <div className="flex items-center text-gray-600">
+                </a>
+                <div className="flex items-center text-gray-600 text-sm">
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
@@ -731,7 +785,7 @@ const Store = () => {
                           setCurrentPage(0);
                           window.scrollTo({top: 0, behavior: "smooth"});
                         }}
-                        className="text-gray-600 hover:text-pink-600 transition-colors cursor-pointer"
+                        className="text-gray-600 hover:text-pink-600 text-sm transition-colors cursor-pointer"
                       >
                         {getCategoryLabel(category)}
                       </button>
@@ -757,9 +811,9 @@ const Store = () => {
                     </a>
                   )}
 
-                  {company.whatsapp && (
+                  {company.phone && (
                     <a 
-                      href={`https://wa.me/${company.whatsapp}`}
+                      href={`https://wa.me/${company.phone}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-600 hover:text-pink-600 transition-colors"
@@ -773,7 +827,7 @@ const Store = () => {
 
                 <button
                   onClick={() => {
-                    const whatsappURL = `https://wa.me/${company.whatsapp}?text=${encodeURIComponent(`Hola ${company.name}, me gustaría hacer una consulta sobre sus productos.`)}`;
+                    const whatsappURL = `https://wa.me/${company.phone}?text=${encodeURIComponent(`Hola ${company.name}, me gustaría hacer una consulta sobre sus productos.`)}`;
                     window.open(whatsappURL, "_blank");
                   }}
                   className="inline-flex items-center px-4 py-2 cursor-pointer border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
@@ -783,6 +837,14 @@ const Store = () => {
                   </svg>
                   Consultar por WhatsApp
                 </button>
+                <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d11935.15413521237!2d2.4054406!3d41.5954573!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12a4cb3fc200ac1d%3A0x7be5b0e6918f6dc5!2sGlobos%20Anabell%20Maresme!5e0!3m2!1ses-419!2sus!4v1742652975101!5m2!1ses-419!2sus" 
+                  width="230" height="230" 
+                  className="border-none mt-4"
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade" >
+                  </iframe>
               </div>
             </div>
           </div>
