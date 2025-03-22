@@ -32,8 +32,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       
       // Redirigir solo si el usuario NO está autenticado y NO estamos ya en /login
-      if (!user && pathname !== "/login") {
+      if (!user && pathname === "/admin") {
         router.push("/login");
+      } else if(user && pathname === "/login") {
+        router.push("/admin")
       }
     });
 
@@ -68,8 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOut(auth);
 
-      // Evitar redirección si ya estamos en /login
-      if (pathname !== "/login") {
+      if (pathname === "/admin") {
         router.push("/login");
       }
     } catch (error) {

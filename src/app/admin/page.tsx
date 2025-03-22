@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link"
 import { getDocuments, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
 import { Timestamp } from "firebase/firestore";
@@ -9,6 +9,7 @@ import Company from "../../interfaces/Company"
 import Product from "../../interfaces/Product";
 import Category from "../../interfaces/Category";
 import Sale from "../../interfaces/Sale"
+import Image from "next/image";
 
 interface ProductModalProps {
   product: Product;
@@ -24,44 +25,85 @@ interface SaleDetailsModalProps {
   getTotalAmount: (sale: Sale) => number;
 }
 
-// Componentes de UI
-const Sidebar =  ({ activeSection, setActiveSection }: { activeSection: string; setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
-  const [company, setCompany] = useState<Company | null>(null)
+// Sidebar component
+const Sidebar = ({ 
+  activeSection, 
+  setActiveSection,
+  isOpen,
+  setIsOpen
+}: { 
+  activeSection: string; 
+  setActiveSection: React.Dispatch<React.SetStateAction<string>>;
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const [company, setCompany] = useState<Company | null>(null);
 
-  const fetch = async() => {
-    setCompany((await getDocuments("company") as Company[])[0]);
-  }
+  useEffect(() => {
+    const fetch = async() => {
+      setCompany((await getDocuments("company") as Company[])[0]);
+    };
+  
+    fetch();
+  }, []);
 
-  fetch()
+  // Classes for the mobile overlay sidebar
+  const mobileClasses = `
+    fixed inset-0 z-30 bg-gray-800 text-white w-64 py-6 flex flex-col h-screen
+    transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+    transition-transform duration-300 ease-in-out sm:hidden
+  `;
+  
+  // Classes for the regular desktop sidebar
+  const desktopClasses = `
+    bg-gray-800 text-white w-64 py-6 hidden sm:flex flex-col h-screen
+  `;
 
-  return (
-    <div className="bg-gray-800 text-white w-64 py-6 flex flex-col h-screen">
+  const renderSidebarContent = () => (
+    <>
       <div className="px-6 mb-4 inline-flex gap-2 items-center">
-        <img src={company?.logoURL} className="w-12 h-12"/>
+        {company && (
+          <Image
+            src={company.logoURL}
+            alt={company.name}
+            className="w-12 h-12"
+            width={48}
+            height={48}
+          />
+        )}
         <h1 className="text-2xl font-bold">Panel Admin</h1>
       </div>
       <nav className="flex-1">
         <ul className="px-4">
           <li className={`mb-2 rounded ${activeSection === "empresa" ? "bg-blue-600" : "hover:bg-gray-700"}`}>
             <button 
-              onClick={() => setActiveSection("empresa")}
-              className={`block px-4 py-2`}
+              onClick={() => {
+                setActiveSection("empresa");
+                if (window.innerWidth < 640) setIsOpen(false);
+              }} 
+              className="block px-4 py-2 w-full text-left"
             >
               Información de Empresa
             </button>
           </li>
           <li className={`mb-2 rounded ${activeSection === "productos" ? "bg-blue-600" : "hover:bg-gray-700"}`}>
             <button 
-              onClick={() => setActiveSection("productos")}
-              className={`block px-4 py-2`}
+              onClick={() => {
+                setActiveSection("productos");
+                if (window.innerWidth < 640) setIsOpen(false);
+              }} 
+              className="block px-4 py-2 w-full text-left"
             >
               Gestión de Productos
             </button>
           </li>
           <li className={`mb-2 rounded ${activeSection === "ventas" ? "bg-blue-600" : "hover:bg-gray-700"}`}>
             <button 
-              onClick={() => setActiveSection("ventas")}
-              className={`block px-4 py-2`}
+              onClick={() => {
+                setActiveSection("ventas");
+                if (window.innerWidth < 640) setIsOpen(false);
+              }} 
+              className="block px-4 py-2 w-full text-left"
             >
               Registro de Ventas
             </button>
@@ -73,15 +115,75 @@ const Sidebar =  ({ activeSection, setActiveSection }: { activeSection: string; 
           Ir a la Tienda
         </Link>
       </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile Sidebar (overlay) */}
+      <div className={mobileClasses}>
+        {renderSidebarContent()}
+      </div>
+      
+      {/* Desktop Sidebar */}
+      <div className={desktopClasses}>
+        {renderSidebarContent()}
+      </div>
+      
+      {/* Overlay backdrop for mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
+  );
+};
+
+// Mobile Navbar component
+const MobileNavbar = ({ 
+  isOpen, 
+  setIsOpen,
+  company
+}: { 
+  isOpen: boolean; 
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  company: Company | null;
+}) => {
+  return (
+    <div className="bg-gray-800 text-white p-4 flex justify-between items-center sm:hidden">
+      <div className="flex items-center gap-2">
+        {company && (
+          <Image
+            src={company.logoURL}
+            alt={company.name}
+            className="w-8 h-8"
+            width={32}
+            height={32}
+          />
+        )}
+        <h1 className="text-xl font-bold">Panel Admin</h1>
+      </div>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="text-white focus:outline-none"
+      >
+        <div className="w-6 h-0.5 bg-white mb-1.5"></div>
+        <div className="w-6 h-0.5 bg-white mb-1.5"></div>
+        <div className="w-6 h-0.5 bg-white"></div>
+      </button>
     </div>
   );
 };
 
 // Panel principal
 const AdminPanel = () => {
-
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [activeSection, setActiveSection] = useState<string>("empresa");
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [company, setCompany] = useState<Company | null>(null);
 
   useEffect(() => {
     if (loading) return; 
@@ -90,6 +192,26 @@ const AdminPanel = () => {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    const fetch = async() => {
+      setCompany((await getDocuments("company") as Company[])[0]);
+    };
+  
+    fetch();
+  }, []);
+
+  // Close sidebar when window resizes above small breakpoint
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -97,8 +219,6 @@ const AdminPanel = () => {
       </div>
     );
   }
-
-  const [activeSection, setActiveSection] = useState<string>("empresa");
 
   const renderActiveSection = () => {
     switch (activeSection) {
@@ -114,15 +234,22 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="flex">
-      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <div className="flex-1 p-8 bg-gray-100 overflow-auto h-screen">
-        {renderActiveSection()}
+    <div className="flex flex-col h-screen">
+      <MobileNavbar isOpen={isOpen} setIsOpen={setIsOpen} company={company} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar 
+          activeSection={activeSection} 
+          setActiveSection={setActiveSection} 
+          isOpen={isOpen}
+          setIsOpen={setIsOpen}
+        />
+        <div className="flex-1 p-8 bg-gray-100 overflow-auto h-screen">
+          {renderActiveSection()}
+        </div>
       </div>
     </div>
   );
 };
-
 
 // Componente para gestionar la información de la empresa
 const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
@@ -145,12 +272,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: "", type: "" });
 
-  useEffect(() => {
-    setActiveSection("empresa");
-    fetchCompanyData();
-  }, [setActiveSection]);
-
-  const fetchCompanyData = async () => {
+  const fetchCompanyData = useCallback(async () => {
     try {
         const companies = await getDocuments("company") as Company[];
         if (companies.length > 0) {
@@ -180,7 +302,12 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
         setMessage({ text: "Error al cargar datos de la empresa", type: "error" });
         setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    setActiveSection("empresa");
+    fetchCompanyData();
+  }, [setActiveSection, fetchCompanyData]);
 
   const formatTimestampForTimeInput = (timestamp: Timestamp | null) => {
     if (!timestamp) return "";
@@ -351,7 +478,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <textarea
             name="description"
             value={company.description}
-            onChange={(e) => handleInputChange}
+            onChange={() => handleInputChange}
             rows={3}
             className="w-full p-2 border rounded"
           ></textarea>
@@ -362,7 +489,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <textarea
             name="location"
             value={company.location}
-            onChange={(e) => handleInputChange}
+            onChange={() => handleInputChange}
             rows={2}
             className="w-full p-2 border rounded"
           ></textarea>
@@ -638,7 +765,13 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
                   <tr key={index}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {product.imageURL ? (
-                        <img src={product.imageURL} alt={product.name} className="h-12 w-12 object-cover rounded" />
+                        <Image 
+                          src={product.imageURL} 
+                          alt={product.name} 
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 object-cover rounded" 
+                        />
                       ) : (
                         <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center text-gray-500">
                           Sin imagen
@@ -1137,5 +1270,4 @@ const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ sale, onClose, form
   );
 };
 
-// Exportación del componente principal
 export default AdminPanel;

@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getDocuments } from "../../utils/Database"
 import { isValidEmail } from "../../utils/Validations";
 import Company from "../../interfaces/Company"
+import Image from "next/image"
 
 const AuthPage = () => {
   const [email, setEmail] = useState("");
@@ -17,20 +18,6 @@ const AuthPage = () => {
   const { login, user, sendPasswordResetEmail, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (loading) return;
-    if (user) {
-      router.push("/admin");
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
-      </div>
-    );
-  }
 
   useEffect(() => {
     const loadCompanyData = async () => {
@@ -46,6 +33,21 @@ const AuthPage = () => {
     
     loadCompanyData();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      router.push("/admin");
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,17 +68,21 @@ const AuthPage = () => {
 
     try {
       await login(email, password);
-    } catch (err: any) {
-      if (err.message === "Firebase: Error (auth/email-already-in-use).") {
-        setError("Ya existe una cuenta asociada a ese correo electrónico.");
-      } else if (err.message === "Firebase: Error (auth/invalid-credential).") {
-        setError("Correo electrónico o contraseña incorrectos.");
-      } else if (err.message === "Firebase: Error (auth/too-many-requests).") {
-        setError("Demasiados intentos fallidos. Intente más tarde o restablezca su contraseña.");
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message === "Firebase: Error (auth/email-already-in-use).") {
+          setError("Ya existe una cuenta asociada a ese correo electrónico.");
+        } else if (err.message === "Firebase: Error (auth/invalid-credential).") {
+          setError("Correo electrónico o contraseña incorrectos.");
+        } else if (err.message === "Firebase: Error (auth/too-many-requests).") {
+          setError("Demasiados intentos fallidos. Intente más tarde o restablezca su contraseña.");
+        } else {
+          setError("Error al iniciar sesión. Por favor intente nuevamente.");
+        }
       } else {
-        setError("Error al iniciar sesión. Por favor intente nuevamente.");
+        setError("Error desconocido. Por favor intente nuevamente.");
       }
-    } finally {
+    } finally {    
       setIsLoading(false);
     }
   };
@@ -92,7 +98,7 @@ const AuthPage = () => {
       await sendPasswordResetEmail(email);
       setMessage("Se ha enviado un correo para restablecer su contraseña");
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Error al enviar el correo de recuperación. Intente nuevamente.");
     } finally {
       setIsLoading(false);
@@ -105,7 +111,13 @@ const AuthPage = () => {
         <div className="mb-6 text-center">
           {company && (
             <>
-              <img src={company.logoURL} alt="Logo" className="rounded-full w-32 h-32 mx-auto"/>
+              <Image
+               src={company.logoURL} 
+               alt="Logo" 
+               className="rounded-full w-32 h-32 mx-auto"
+               width={128}
+               height={128}
+               />
               <h1 className="text-2xl font-bold text-gray-800">Administración de {company.name}</h1>
             </>
           )}

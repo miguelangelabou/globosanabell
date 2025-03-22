@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { getDocuments, categories, categoryGroups } from "../utils/Database";
 import { Timestamp } from "firebase/firestore";
+import Image from 'next/image';
 import Product from "../interfaces/Product";
 import Company from "../interfaces/Company";
 import { MagnifyingGlassIcon, ShoppingCartIcon, HeartIcon, AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
@@ -246,9 +247,11 @@ const Store = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <img 
+              <Image 
                 src={company.logoURL} 
                 alt={company.name} 
+                width={48} 
+                height={48} 
                 className="h-12 w-12 rounded-full object-cover mr-3" 
               />
               <h1 className="text-2xl font-bold text-pink-600">{company.name}</h1>
@@ -497,7 +500,13 @@ const Store = () => {
                       {cart.map(item => (
                         <div key={item.product.id} className="p-4 flex rounded-md bg-white shadow-md">
                           <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                            <img src={item.product.imageURL} alt={item.product.name} className="h-full w-full object-cover object-center" />
+                            <Image 
+                            src={item.product.imageURL} 
+                            alt={item.product.name} 
+                            layout="fill"
+                            objectFit="cover"
+                            className="h-full w-full object-cover object-center"
+                            />
                           </div>
                           <div className="ml-4 flex flex-1 flex-col">
                             <div>
@@ -575,12 +584,14 @@ const Store = () => {
               
               {displayedProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {displayedProducts.map(product => (
-                    <div key={product.id} className="bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
+                  {displayedProducts.map((product, index) => (
+                    <div key={index} className="bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
                       <div className="relative h-56 overflow-hidden">
-                        <img 
+                        <Image 
                           src={product.imageURL} 
                           alt={product.name} 
+                          layout="fill"
+                          objectFit="cover"
                           className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
                         />
                         <button
