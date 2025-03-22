@@ -503,7 +503,8 @@ const Store = () => {
                             <Image 
                             src={item.product.imageURL} 
                             alt={item.product.name} 
-                            layout="fill"
+                            width={100}
+                            height={100}
                             objectFit="cover"
                             className="h-full w-full object-cover object-center"
                             />
