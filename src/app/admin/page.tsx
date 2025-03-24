@@ -1255,7 +1255,7 @@ const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatc
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      ${getTotalAmount(sale).toFixed(2)}
+                      {getTotalAmount(sale).toFixed(2)}€
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
@@ -1338,9 +1338,9 @@ const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ sale, onClose, form
                     {sale.product.map((item, index) => (
                       <tr key={index}>
                         <td className="px-4 py-2 whitespace-nowrap">{item.name}</td>
-                        <td className="px-4 py-2 whitespace-nowrap">${item.price.toFixed(2)}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">{item.price.toFixed(2)}€</td>
                         <td className="px-4 py-2 whitespace-nowrap">{item.amount}</td>
-                        <td className="px-4 py-2 whitespace-nowrap">${(item.price * item.amount).toFixed(2)}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">{(item.price * item.amount).toFixed(2)}€</td>
                       </tr>
                     ))}
                   </tbody>
