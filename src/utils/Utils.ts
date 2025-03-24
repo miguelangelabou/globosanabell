@@ -36,6 +36,8 @@ export const categories = [
   { value: "14_febrero", label: "14 de Febrero" },
   { value: "21_marzo", label: "21 de Marzo" },
   { value: "21_septiembre", label: "21 de Septiembre" },
+  { value: "navidad", label: "Navidad" },
+  { value: "nacimientos", label: "Nacimientos" },
   { value: "peluches", label: "Peluches" },
   { value: "flores", label: "Flores" },
   { value: "ramos", label: "Ramos" },
@@ -54,7 +56,7 @@ export const categories = [
 ];
 
 export const categoryGroups = {
-    "Fechas Especiales": ["14_febrero", "21_marzo", "21_septiembre", "cumpleaños", "bodas"],
+    "Fechas Especiales": ["14_febrero", "21_marzo", "21_septiembre", "cumpleaños", "bodas", "navidad", "nacimientos"],
     "Productos Destacados": ["regalos", "detalles", "peluches", "flores", "ramos", "globos"],
     "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "cestas", "complementos"]
 };
