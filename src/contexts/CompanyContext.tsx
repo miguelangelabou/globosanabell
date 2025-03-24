@@ -1,19 +1,9 @@
-// contexts/CompanyContext.tsx
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getDocuments } from '../utils/Database';
+import { getDocuments } from '../utils/Utils';
+import Company from "../interfaces/Company"
 
-// Define la interfaz para la compañía
-interface Company {
-  id?: string;
-  name: string;
-  description: string;
-  logoURL: string;
-  // Añade aquí cualquier otra propiedad que necesites
-}
-
-// Crea el contexto
 interface CompanyContextType {
   company: Company | null;
   loading: boolean;
@@ -26,12 +16,22 @@ const CompanyContext = createContext<CompanyContextType>({
   error: null
 });
 
-// Hook personalizado para usar el contexto
 export const useCompany = () => useContext(CompanyContext);
 
-// Proveedor del contexto
 export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [company, setCompany] = useState<Company | null>(null);
+  const [company, setCompany] = useState<Company>({
+    id: "",
+    name: "Cargando...",
+    description: "Cargando...",
+    phone: "Cargando...",
+    logoURL: "https://i.imgur.com/fJwVCpH.png",
+    location: "Cargando...",
+    locationMaps: "Cargando...",
+    instagram: "Cargando...",
+    isOpen: false,
+    weekdaySchedule: "Cargando...",
+    weekendSchedule: "Cargando...",
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 

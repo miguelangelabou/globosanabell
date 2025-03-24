@@ -1,7 +1,5 @@
-import { Timestamp } from "firebase/firestore";
-
 interface Company {
-    id: string;
+    id?: string;
     name: string;
     description: string;
     phone: string;
@@ -12,7 +10,6 @@ interface Company {
     location: string;
     locationMaps: string;
     isOpen: boolean;
-    paymentAccount: string;
 }
 
 export default Company;

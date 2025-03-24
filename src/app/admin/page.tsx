@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link"
-import { getDocuments, updateDocument, deleteDocument, addDocument, categories } from "../../utils/Database";
+import React, { useState, useEffect, useRef } from "react";
+import { getDocuments, updateDocument, deleteDocument, addDocument, categories, formatDateTime, formatDate } from "../../utils/Utils";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -10,6 +9,7 @@ import Product from "../../interfaces/Product";
 import Category from "../../interfaces/Category";
 import Sale from "../../interfaces/Sale"
 import Image from "next/image";
+import { useCompany } from "../../contexts/CompanyContext"
 
 interface ProductModalProps {
   product: Product;
@@ -37,15 +37,7 @@ const Sidebar = ({
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const [company, setCompany] = useState<Company | null>(null);
-
-  useEffect(() => {
-    const fetch = async() => {
-      setCompany((await getDocuments("company") as Company[])[0]);
-    };
-  
-    fetch();
-  }, []);
+  const { company } = useCompany()
 
   // Classes for the mobile overlay sidebar
   const mobileClasses = `
@@ -81,7 +73,7 @@ const Sidebar = ({
                 setActiveSection("empresa");
                 if (window.innerWidth < 640) setIsOpen(false);
               }} 
-              className="block px-4 py-2 w-full text-left"
+              className="block px-4 py-2 w-full text-left cursor-pointer"
             >
               Información de Empresa
             </button>
@@ -92,7 +84,7 @@ const Sidebar = ({
                 setActiveSection("productos");
                 if (window.innerWidth < 640) setIsOpen(false);
               }} 
-              className="block px-4 py-2 w-full text-left"
+              className="block px-4 py-2 w-full text-left cursor-pointer"
             >
               Gestión de Productos
             </button>
@@ -103,7 +95,7 @@ const Sidebar = ({
                 setActiveSection("ventas");
                 if (window.innerWidth < 640) setIsOpen(false);
               }} 
-              className="block px-4 py-2 w-full text-left"
+              className="block px-4 py-2 w-full text-left cursor-pointer"
             >
               Registro de Ventas
             </button>
@@ -111,9 +103,12 @@ const Sidebar = ({
         </ul>
       </nav>
       <div className="px-4 mt-auto">
-        <Link href="/" className="block px-4 py-2 text-center bg-green-600 rounded hover:bg-green-700">
+        <button 
+          className="block px-4 py-2 text-center bg-green-600 rounded hover:bg-green-700 cursor-pointer"
+          onClick={()=> window.location.assign("/")}
+        >
           Ir a la Tienda
-        </Link>
+        </button>
       </div>
     </>
   );
@@ -167,7 +162,7 @@ const MobileNavbar = ({
       </div>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="text-white focus:outline-none"
+        className="text-white focus:outline-none cursor-pointer"
       >
         <div className="w-6 h-0.5 bg-white mb-1.5"></div>
         <div className="w-6 h-0.5 bg-white mb-1.5"></div>
@@ -179,26 +174,19 @@ const MobileNavbar = ({
 
 // Panel principal
 const AdminPanel = () => {
-  const { user, loading } = useAuth();
+  const { user, loadingAuth } = useAuth();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<string>("empresa");
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [company, setCompany] = useState<Company | null>(null);
+  const { company, loading } = useCompany()
 
   useEffect(() => {
-    if (loading) return; 
+    if (loadingAuth) return; 
     if (!user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, loadingAuth, router]);
 
-  useEffect(() => {
-    const fetch = async() => {
-      setCompany((await getDocuments("company") as Company[])[0]);
-    };
-  
-    fetch();
-  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -211,7 +199,7 @@ const AdminPanel = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (loading || !user) {
+  if (loading || !user || loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
@@ -252,20 +240,19 @@ const AdminPanel = () => {
 
 // Componente para gestionar la información de la empresa
 const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
-  const [company, setCompany] = useState<Company>({
-    id: "",
-    name: "",
-    description: "",
-    phone: "",
-    logoURL: "",
+  const { company } = useCompany()
+  const [companyData, setCompanyData] = useState<Company>({
+    name: "Cargando...",
+    description: "Cargando...",
+    phone: "Cargando...",
+    logoURL: "Cargando...",
     weekdaySchedule: "Cargando...",
     weekendSchedule: "Cargando...",
-    instagram: "",
-    location: "",
-    locationMaps: "",
-    isOpen: false,
-    paymentAccount: ""
-  });
+    instagram: "Cargando...",
+    location: "Cargando...",
+    locationMaps: "Cargando...",
+    isOpen: true
+  })
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: "", type: "" });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -273,41 +260,14 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
 
-  const fetchCompanyData = useCallback(async () => {
-    try {
-        const companies = await getDocuments("company") as Company[];
-        if (companies.length > 0) {
-            const companyData = companies[0];
-            setCompany({
-              id: companyData.id || "",
-              name: companyData.name || "",
-              description: companyData.description || "",
-              phone: companyData.phone || "",
-              logoURL: companyData.logoURL || "",
-              weekdaySchedule: companyData.weekdaySchedule || "Cargando...",
-              weekendSchedule: companyData.weekendSchedule || "Cargando...",
-              instagram: companyData.instagram || "",
-              location: companyData.location || "",
-              locationMaps: companyData.locationMaps || "",
-              isOpen: companyData.isOpen || false,
-              paymentAccount: companyData.paymentAccount || ""
-          });
-            if (companyData.logoURL) {
-              setPreviewImage(companyData.logoURL);
-            }
-        }
-        setLoading(false);
-    } catch (error) {
-        console.error("Error al cargar datos de la empresa:", error);
-        setMessage({ text: "Error al cargar datos de la empresa", type: "error" });
-        setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    setActiveSection("empresa");
-    fetchCompanyData();
-  }, [setActiveSection, fetchCompanyData]);
+    if (company) {
+      setPreviewImage(company.logoURL);
+      setCompanyData(company as Company);
+      setActiveSection("empresa");
+      setLoading(false);
+    }
+  }, [company, setActiveSection]);
 
   const handleImageClick = () => {
     if (fileInputRef.current) {
@@ -347,9 +307,9 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     const { name, value, type } = e.target as HTMLInputElement;
     
     if (type === "checkbox") {
-      setCompany({ ...company, [name]: (e.target as HTMLInputElement).checked });
+      setCompanyData({ ...companyData, [name]: (e.target as HTMLInputElement).checked });
     } else {
-      setCompany({ ...company, [name]: value });
+      setCompanyData({ ...companyData, [name]: value });
     }
   };
 
@@ -386,25 +346,25 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     setLoading(true);
     
     try {
-        let updatedCompany = { ...company };
+        const updatedCompany = { ...companyData };
         if (logoFile) {
           try {
             const imgurUrl = await uploadImageToImgur(logoFile);
             updatedCompany.logoURL = imgurUrl;
-            setCompany(updatedCompany);
-          } catch (error) {
+            setCompanyData(updatedCompany);
+          } catch {
             setMessage({ text: "Error al subir la imagen a Imgur", type: "error" });
             setLoading(false);
             return;
           }
         }
         
-        if (company.id) {
-            await updateDocument("company", company.id, updatedCompany);
+        if (companyData.id) {
+            await updateDocument("company", companyData.id, updatedCompany);
             setMessage({ text: "Información actualizada correctamente", type: "success" });
         } else {
             const newId = await addDocument("company", updatedCompany);
-            setCompany({ ...updatedCompany, id: newId });
+            setCompanyData({ ...updatedCompany, id: newId });
             setMessage({ text: "Información guardada correctamente", type: "success" });
         }
     } catch (error) {
@@ -438,7 +398,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               <input
                 type="text"
                 name="name"
-                value={company.name}
+                value={companyData.name}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded"
                 required
@@ -450,7 +410,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               <input
                 type="text"
                 name="phone"
-                value={company.phone}
+                value={companyData.phone}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded"
               />
@@ -461,7 +421,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               <input
                 type="text"
                 name="instagram"
-                value={company.instagram}
+                value={companyData.instagram}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded"
               />
@@ -474,12 +434,13 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               className="h-32 flex items-center justify-center cursor-pointer mt-12"
               onClick={handleImageClick}
             >
-              <div className="w-48 h-48 rounded-full border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
+              <div className="w-48 h-48 relative rounded-full border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
                 {previewImage ? (
-                  <img 
-                    src={previewImage} 
-                    alt="Logo preview" 
-                    className="w-full h-full object-contain"
+                  <Image 
+                    src={previewImage}
+                    alt="Logo preview"
+                    fill
+                    className="object-contain" 
                   />
                 ) : (
                   <div className="text-center text-gray-500">
@@ -508,7 +469,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
             <input
               type="text"
               name="weekdaySchedule"
-              value={company.weekdaySchedule}
+              value={companyData.weekdaySchedule}
               onChange={handleInputChange}
               className="w-full p-2 border rounded"
             />
@@ -519,7 +480,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
             <input
               type="text"
               name="weekendSchedule"
-              value={company.weekendSchedule}
+              value={companyData.weekendSchedule}
               onChange={handleInputChange}
               className="w-full p-2 border rounded"
             />
@@ -530,7 +491,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <label className="block mb-2 font-medium">Descripción</label>
           <textarea
             name="description"
-            value={company.description}
+            value={companyData.description}
             onChange={handleInputChange}
             rows={3}
             className="w-full p-2 border rounded"
@@ -541,7 +502,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <label className="block mb-2 font-medium">Dirección</label>
           <textarea
             name="location"
-            value={company.location}
+            value={companyData.location}
             onChange={handleInputChange}
             rows={2}
             className="w-full p-2 border rounded"
@@ -553,7 +514,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
           <input
             type="text"
             name="locationMaps"
-            value={company.locationMaps}
+            value={companyData.locationMaps}
             onChange={handleInputChange}
             className="w-full p-2 border rounded"
           />
@@ -565,7 +526,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               type="checkbox"
               id="isOpen"
               name="isOpen"
-              checked={company.isOpen}
+              checked={companyData.isOpen}
               onChange={handleInputChange}
               className="mr-2"
             />
@@ -595,6 +556,8 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
   const [message, setMessage] = useState({ text: "", type: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [isModalOpenImage, setIsModalOpenImage] = useState<boolean>(false)
+  const [productedSelected, setProductedSelected] = useState<Product | null>(null)
   const [currentProduct, setCurrentProduct] = useState<Product>({
     id: "",
     name: "",
@@ -808,11 +771,15 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
                     <td className="px-6 py-4 whitespace-nowrap">
                       {product.imageURL ? (
                         <Image 
+                          onClick={()=> {
+                            setProductedSelected(product)
+                            setIsModalOpenImage(true);
+                          }}
                           src={product.imageURL} 
                           alt={product.name} 
                           width={48}
                           height={48}
-                          className="h-12 w-12 object-cover rounded" 
+                          className="h-12 w-12 object-cover rounded cursor-pointer" 
                         />
                       ) : (
                         <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center text-gray-500">
@@ -877,6 +844,39 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
           categories={categories}
         />
       )}
+
+      {/*Modal de Imagen Expandida*/}
+      {isModalOpenImage && productedSelected && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" 
+          onClick={() => {
+            setProductedSelected(null)
+            setIsModalOpenImage(false);
+          }}
+        >
+          <div className="relative max-w-4xl max-h-screen p-4">
+            <button 
+              className="absolute flex items-center text-lg justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                setProductedSelected(null)
+                setIsModalOpenImage(false);
+              }}
+            >
+              ×
+            </button>
+            <div className="relative w-full h-full" onClick={e => e.stopPropagation()}>
+              <Image 
+                src={productedSelected.imageURL} 
+                alt={productedSelected.name}
+                width={800}
+                height={600}
+                className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -887,7 +887,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
   const [previewImage, setPreviewImage] = useState<string>(product.imageURL);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
   const fileInputRef = useRef(null);
 
   const uploadImageToImgur = async (file: File): Promise<string> => {
@@ -926,7 +925,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
       try {
         const imgurUrl = await uploadImageToImgur(logoFile);
         productData.imageURL = imgurUrl;
-      } catch (error) {
+      } catch {
         setUploadingImage(false);
         return;
       }
@@ -1047,12 +1046,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
                     className="h-32 flex items-center justify-center cursor-pointer mt-12"
                     onClick={handleImageClick}
                   >
-                    <div className="w-48 h-48 border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
+                    <div className="w-48 h-48 relative border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
                       {previewImage ? (
-                        <img 
+                        <Image 
                           src={previewImage} 
                           alt="Logo preview" 
                           className="w-full h-full object-contain"
+                          objectFit="cover"
+                          layout="fill"
                         />
                       ) : (
                         <div className="text-center text-gray-500">
@@ -1153,57 +1154,30 @@ const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatc
   const fetchSales = async () => {
     try {
       const data = await getDocuments("sales") as Sale[];
-      // Ordenar por fecha, más recientes primero
       data.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
       setSales(data);
       setLoading(false);
     } catch (error) {
       console.error("Error al cargar ventas:", error);
-      setLoading(false);
     }
   };
-  
-  const formatDate = (timestamp: Timestamp) => {
-    if (!timestamp) return "";
-    
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    });
-  };
-  
-  const formatDateTime = (timestamp: Timestamp) => {
-    if (!timestamp) return "";
-    
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
+
   
   const filteredSales = sales ? sales.filter(sale => {
-    const nameMatch = sale.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const emailMatch = sale.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const phoneMatch = sale.phone?.includes(searchTerm);
-    const dniMatch = sale.DNI?.includes(searchTerm);
+    const ipMatch = sale.ip?.startsWith(searchTerm.toLowerCase());
+    const idMatch = sale.id?.toLowerCase().includes(searchTerm.toLowerCase());
     
     let dateMatch = true;
     if (dateFilter) {
-      const saleDate = sale.createdAt?.toDate?.() || new Date(sale.createdAt?.seconds * 1000);
-      const filterDate = new Date(dateFilter);
+      const saleDate = sale.createdAt.toDate();
+      const filterDate = new Date(dateFilter);      
+      const saleDateString = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}-${String(saleDate.getDate()).padStart(2, '0')}`;
+      const filterDateString = `${filterDate.getFullYear()}-${String(filterDate.getMonth() + 1).padStart(2, '0')}-${String(filterDate.getDate() + 1).padStart(2, '0')}`;
       
-      dateMatch = saleDate.getFullYear() === filterDate.getFullYear() &&
-                  saleDate.getMonth() === filterDate.getMonth() &&
-                  saleDate.getDate() === filterDate.getDate();
+      dateMatch = saleDateString === filterDateString;
     }
     
-    return (nameMatch || emailMatch || phoneMatch || dniMatch) && dateMatch;
+    return (ipMatch || idMatch) && dateMatch;
   }) : [];
   
   const viewSaleDetails = (sale: Sale) => {
@@ -1233,7 +1207,7 @@ const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatc
           <div>
             <input
               type="text"
-              placeholder="Buscar por nombre, email, teléfono o DNI..."
+              placeholder="Buscar por IP, ID..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full p-2 border rounded"
@@ -1279,9 +1253,9 @@ const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatc
                       {formatDate(sale.createdAt)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium">{sale.name}</div>
-                      <div className="text-sm text-gray-500">{sale.email}</div>
-                      <div className="text-sm text-gray-500">{sale.phone}</div>
+                      <div className="text-sm font-medium">{sale.location}</div>
+                      <div className="text-xs text-gray-500">{sale.id}</div>
+                      <div className="text-xs text-gray-500">{sale.ip}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -1346,17 +1320,10 @@ const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ sale, onClose, form
           <div className="border-t border-gray-200 pt-4">
             <div className="mb-4">
               <h4 className="font-medium mb-2">Información de la Venta</h4>
-              <p className="text-sm text-gray-700"><strong>Fecha:</strong> {formatDateTime(sale.createdAt)}</p>
+              <p className="text-sm text-gray-700"><strong>IP:</strong> {sale.ip}</p>
               <p className="text-sm text-gray-700"><strong>ID:</strong> {sale.id}</p>
-            </div>
-            
-            <div className="mb-4">
-              <h4 className="font-medium mb-2">Información del Cliente</h4>
-              <p className="text-sm text-gray-700"><strong>Nombre:</strong> {sale.name}</p>
-              <p className="text-sm text-gray-700"><strong>Email:</strong> {sale.email}</p>
-              <p className="text-sm text-gray-700"><strong>Teléfono:</strong> {sale.phone}</p>
-              <p className="text-sm text-gray-700"><strong>DNI:</strong> {sale.DNI}</p>
-              <p className="text-sm text-gray-700"><strong>Dirección:</strong> {sale.location || "No especificada"}</p>
+              <p className="text-sm text-gray-700"><strong>Fecha:</strong> {formatDateTime(sale.createdAt)}</p>
+              <p className="text-sm text-gray-700"><strong>Ubicación:</strong> {sale.location}</p>
             </div>
             
             <div className="mb-4">

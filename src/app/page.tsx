@@ -1,38 +1,26 @@
 "use client";
-import { useState, useEffect, use } from "react";
-import { getDocuments, categories, categoryGroups } from "../utils/Database";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Timestamp } from "firebase/firestore"
+import { useCompany } from '../contexts/CompanyContext';
+import { addDocument, getDocuments, categories, categoryGroups, getUserIP } from "../utils/Utils";
+import { MagnifyingGlassIcon, ShoppingCartIcon, HeartIcon, AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
 import Image from 'next/image';
 import Product from "../interfaces/Product";
-import Company from "../interfaces/Company";
-import { MagnifyingGlassIcon, ShoppingCartIcon, HeartIcon, AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import Sale from "../interfaces/Sale"
 
 const Store = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [company, setCompany] = useState<Company>({
-    id: "",
-    name: "Cargando...",
-    description: "Cargando...",
-    phone: "Cargando...",
-    logoURL: "https://i.imgur.com/fJwVCpH.png",
-    location: "Cargando...",
-    locationMaps: "Cargando...",
-    paymentAccount: "Cargando...",
-    instagram: "Cargando...",
-    isOpen: false,
-    weekdaySchedule: "Cargando...",
-    weekendSchedule: "Cargando...",
-  });
   
   const router = useRouter()
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { company, loading } = useCompany()
+  const [loadingData, setLoadingData] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showCart, setShowCart] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [sortOption, setSortOption] = useState("featured");
+  const [products, setProducts] = useState<Product[]>([]);
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 1000});
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>(() => {
     const savedCart = localStorage.getItem("cart");
@@ -45,7 +33,6 @@ const Store = () => {
   
   const ITEMS_PER_PAGE = 12;
   
-  // Obtener el nombre de visualización de una categoría
   const getCategoryLabel = (value: string) => {
     const category = categories.find(cat => cat.value === value);
     return category ? category.label : value;
@@ -54,18 +41,14 @@ const Store = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
+        setLoadingData(true);
         const initialProducts = await getDocuments("products") as Product[];
-        const initialCompany = await getDocuments("company") as Company[];
         
         // Filtrar solo productos activos
         const activeProducts = initialProducts.filter(product => product.active);
         
         setProducts(activeProducts);
-        if (initialCompany.length > 0) {
-          setCompany(initialCompany[0]);
-        }
-        
+
         // Cargar carrito y lista de deseos desde localStorage
         const savedCart = localStorage.getItem("cart");
         if (savedCart) {
@@ -77,11 +60,9 @@ const Store = () => {
           setWishlist(JSON.parse(savedWishlist));
         }
         
-        setLoading(false);
+        setLoadingData(false);
       } catch (err) {
         console.error(err);
-        setError("Error al cargar los productos.");
-        setLoading(false);
       }
     };
 
@@ -121,7 +102,6 @@ const Store = () => {
         return b.soldTimes - a.soldTimes;
       case "featured":
       default:
-        // Featured: mostrar primero los más populares de la categoría seleccionada
         if (a.category === selectedCategory && b.category !== selectedCategory) return -1;
         if (a.category !== selectedCategory && b.category === selectedCategory) return 1;
         return b.soldTimes - a.soldTimes;
@@ -153,8 +133,10 @@ const Store = () => {
     const notification = document.getElementById("notification");
     if (notification) {
       notification.classList.remove("hidden");
+      notification.classList.add("block");
       setTimeout(() => {
         notification.classList.add("hidden");
+        notification.classList.remove("block");
       }, 2000);
     }
   };
@@ -190,15 +172,6 @@ const Store = () => {
   // Abrir modal de imagen expandida
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productSelected, setProductedSelected] = useState<Product | null>(null);
-
-  const closeModal = () => {
-    setProductedSelected(null)
-    setIsModalOpen(false);
-  }
-  const openModal = (product: Product) => {
-    setProductedSelected(product)
-    setIsModalOpen(true);
-  }
   
   // Calcular total del carrito
   const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
@@ -220,13 +193,29 @@ const Store = () => {
     
     orderMessage += "Deseo personalizarle lo siguiente:";
     
-    const whatsappURL = `https://wa.me/${company.phone}?text=${encodeURIComponent(orderMessage)}`;
+    const whatsappURL = `https://wa.me/${company?.phone}?text=${encodeURIComponent(orderMessage)}`;
     
     localStorage.setItem("pendingOrder", JSON.stringify({
       cart: cart,
       timestamp: new Date().toISOString(),
       total: total
     }));
+    
+    const client = await getUserIP();
+
+    const saleData: Sale = {
+      ip: client.ip,
+      location: client.location,
+      product: cart.map(item => ({
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        amount: item.quantity,
+      })),
+      createdAt: Timestamp.now()
+    };
+
+    await addDocument("sales", saleData);
     
     window.open(whatsappURL, '_blank');
     
@@ -235,11 +224,19 @@ const Store = () => {
     
     router.push('/thank-you');
   }
+  
+  if (loading && loadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
 
-  return (
+  return (company?.isOpen ? (
     <div className="min-h-screen">
       {/* Notificación */}
-      <div id="notification" className="fixed hidden top-6 right-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg transition-opacity duration-300 opacity-0 z-50">
+      <div id="notification" className="fixed hidden top-6 right-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg z-50">
         <div className="flex items-center">
           <div className="mr-2">
             <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -256,13 +253,13 @@ const Store = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Image 
-                src={company.logoURL} 
-                alt={company.name} 
+                src={company?.logoURL || ""} 
+                alt={company?.name || ""} 
                 width={48} 
                 height={48} 
                 className="h-12 w-12 rounded-full object-cover mr-3" 
               />
-              <h1 className="text-2xl font-bold text-pink-600">{company.name}</h1>
+              <h1 className="text-2xl font-bold text-pink-600">{company?.name}</h1>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -509,12 +506,12 @@ const Store = () => {
                         <div key={item.product.id} className="p-4 flex rounded-md bg-white shadow-md">
                           <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                             <Image 
-                            src={item.product.imageURL} 
-                            alt={item.product.name} 
-                            width={100}
-                            height={100}
-                            objectFit="cover"
-                            className="h-full w-full object-cover object-center"
+                              src={item.product.imageURL} 
+                              alt={item.product.name} 
+                              width={100}
+                              height={100}
+                              objectFit="cover"
+                              className="h-full w-full object-cover object-center"
                             />
                           </div>
                           <div className="ml-4 flex flex-1 flex-col">
@@ -597,7 +594,10 @@ const Store = () => {
                     <div key={index} className="bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
                       <div className="relative h-56 overflow-hidden">
                         <Image 
-                          onClick={()=> openModal(product)} 
+                          onClick={()=> {
+                            setProductedSelected(product)
+                            setIsModalOpen(true);                        
+                          }}
                           src={product.imageURL} 
                           alt={product.name} 
                           layout="fill"
@@ -659,13 +659,20 @@ const Store = () => {
                   
                   {/*Modal de Imagen Expandida*/}
                   {isModalOpen && productSelected && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={closeModal}>
+                    <div 
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                      onClick={() => {
+                        setProductedSelected(null)
+                        setIsModalOpen(false);
+                      }}
+                    >
                       <div className="relative max-w-4xl max-h-screen p-4">
                         <button 
                           className="absolute flex items-center text-lg justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            closeModal();
+                            setProductedSelected(null)
+                            setIsModalOpen(false);
                           }}
                         >
                           ×
@@ -738,23 +745,23 @@ const Store = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Información de la empresa */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Acerca de {company.name}</h3>
-                <p className="text-xs text-gray-600 mb-4">{company.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Acerca de {company?.name}</h3>
+                <p className="text-xs text-gray-600 mb-4">{company?.description}</p>
                 <span className="text-sm text-gray-600 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12a.75.75 0 00-1.5 0v4a.75.75 0 00.22.53l3 3a.75.75 0 101.06-1.06L10.75 10.5V6z" clipRule="evenodd" />
                   </svg>
-                  Lunes a Viernes:<br />{company.weekdaySchedule}
+                  Lunes a Viernes:<br />{company?.weekdaySchedule}
                 </span>
                 <br />
                 <span className="text-sm text-gray-600 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12a.75.75 0 00-1.5 0v4a.75.75 0 00.22.53l3 3a.75.75 0 101.06-1.06L10.75 10.5V6z" clipRule="evenodd" />
                   </svg>
-                  Sábado y Domingo:<br />{company.weekendSchedule}
+                  Sábado y Domingo:<br />{company?.weekendSchedule}
                 </span>
                 <a 
-                  href={company.locationMaps}
+                  href={company?.locationMaps}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center text-gray-600 text-sm mb-2 mt-4 hover:text-pink-600 transition-colors"
@@ -763,13 +770,13 @@ const Store = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span>{company.location}</span>
+                  <span>{company?.location}</span>
                 </a>
                 <div className="flex items-center text-gray-600 text-sm">
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  <span>{company.phone}</span>
+                  <span>{company?.phone}</span>
                 </div>
               </div>
 
@@ -798,9 +805,9 @@ const Store = () => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Contacto y redes sociales</h3>
                 <div className="flex space-x-4 mb-4">
-                  {company.instagram && (
+                  {company?.instagram && (
                     <a 
-                      href={`https://instagram.com/${company.instagram}`}
+                      href={`https://instagram.com/${company?.instagram}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-600 hover:text-pink-600 transition-colors"
@@ -811,9 +818,9 @@ const Store = () => {
                     </a>
                   )}
 
-                  {company.phone && (
+                  {company?.phone && (
                     <a 
-                      href={`https://wa.me/${company.phone}`}
+                      href={`https://wa.me/${company?.phone}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-600 hover:text-pink-600 transition-colors"
@@ -827,7 +834,7 @@ const Store = () => {
 
                 <button
                   onClick={() => {
-                    const whatsappURL = `https://wa.me/${company.phone}?text=${encodeURIComponent(`Hola ${company.name}, me gustaría hacer una consulta sobre sus productos.`)}`;
+                    const whatsappURL = `https://wa.me/${company?.phone}?text=${encodeURIComponent(`Hola ${company?.name}, me gustaría hacer una consulta sobre sus productos.`)}`;
                     window.open(whatsappURL, "_blank");
                   }}
                   className="inline-flex items-center px-4 py-2 cursor-pointer border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
@@ -851,11 +858,38 @@ const Store = () => {
           
           <div className="mt-12 pt-8 border-t border-gray-400 text-center w-full">
             <p className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} {company.name}. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} {company?.name}. Todos los derechos reservados.
             </p>
           </div>
         </footer>
     </div>
+  )
+  :
+  (
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4 py-12">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-md overflow-hidden p-8 text-center">
+            <div className="mb-6">
+                {company && (
+                    <Image
+                    src={company?.logoURL} 
+                    alt="Logo" 
+                    className="rounded-full w-32 h-32 mx-auto"
+                    width={128}
+                    height={128}
+                    />
+                )}
+            </div>
+            
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Tienda Cerrada
+            </h1>
+            
+            <p className="text-gray-600 mb-8">
+                Lo sentimos, en este momento no estamos abiertos. Por favor, inténtalo más tarde.
+            </p>
+        </div>
+    </div>
+  )
   );
 };
 

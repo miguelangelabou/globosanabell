@@ -2,9 +2,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
-import { getDocuments } from "../../utils/Database"
-import { isValidEmail } from "../../utils/Validations";
-import Company from "../../interfaces/Company"
+import { isValidEmail } from "../../utils/Utils";
+import { useCompany } from "../../contexts/CompanyContext";
 import Image from "next/image"
 
 const AuthPage = () => {
@@ -13,35 +12,20 @@ const AuthPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [company, setCompany] = useState<Company | null>(null);
+  const { company, loading } = useCompany()
 
-  const { login, user, sendPasswordResetEmail, loading } = useAuth();
+  const { login, user, sendPasswordResetEmail, loadingAuth } = useAuth();
   const router = useRouter();
 
 
+  
   useEffect(() => {
-    const loadCompanyData = async () => {
-      try {
-        const companies = await getDocuments("company") as Company[];
-        if (companies && companies.length > 0) {
-          setCompany(companies[0]);
-        }
-      } catch (error) {
-        console.error("Error cargando datos de la compañía:", error);
-      }
-    };
-    
-    loadCompanyData();
-  }, []);
-
-  useEffect(() => {
-    if (loading) return;
     if (user) {
       router.push("/admin");
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading && loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>

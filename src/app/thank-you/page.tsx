@@ -1,31 +1,20 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getDocuments } from '../../utils/Database';
-import Company from "../../interfaces/Company"
-import Image from "next/image"
+import { useCompany } from '../../contexts/CompanyContext';
+import Product from "../../interfaces/Product"
+import Image from "next/image";
 
 const ThankYouPage = () => {
+  const { company, loading } = useCompany();
   const router = useRouter();
-  const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [company, setCompany] = useState<Company>();
+  const [orderDetails, setOrderDetails] = useState<{
+    cart: {product: Product, quantity: number}[];
+    timestamp: string;
+    total: number;
+  } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    const loadCompanyData = async () => {
-      try {
-        const companies = await getDocuments("company") as Company[];
-        if (companies && companies.length > 0) {
-          setCompany(companies[0]);
-        }
-      } catch (error) {
-        console.error("Error cargando datos de la compañía:", error);
-      }
-    };
-    
-    loadCompanyData();
-  }, []);
-  
   useEffect(() => {
     const pendingOrder = localStorage.getItem('pendingOrder');
 
@@ -38,13 +27,21 @@ const ThankYouPage = () => {
   }, []);
 
   useEffect(() => {
-    if (isLoaded && (!orderDetails || orderDetails.length === 0)) {
+    if (isLoaded && (!orderDetails || orderDetails.cart.length === 0)) {
       router.push("/");
     }
   }, [orderDetails, isLoaded, router]);
 
-  if (!isLoaded || !orderDetails || orderDetails.length === 0) {
+  if (!isLoaded || !orderDetails || orderDetails.cart.length === 0) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
   }
 
   return (
@@ -89,7 +86,7 @@ const ThankYouPage = () => {
             <div className="mt-6 border-t border-gray-200 pt-6 text-left">
               <h2 className="text-lg font-medium text-gray-900">Resumen del pedido</h2>
               <ul className="mt-2 divide-y divide-gray-200">
-                {orderDetails.cart.map((item: any, index: number) => (
+                {orderDetails.cart.map((item, index) => (
                   <li key={index} className="py-3 flex justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">

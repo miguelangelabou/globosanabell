@@ -7,12 +7,13 @@ import {
   User,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
 } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 import { auth } from "../config/firebaseConfig";
 import { useRouter, usePathname } from "next/navigation";
 
 type AuthContextType = {
   user: User | null;
-  loading: boolean;
+  loadingAuth: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
@@ -22,16 +23,15 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
+      setLoadingAuth(false);
       
-      // Redirigir solo si el usuario NO está autenticado y NO estamos ya en /login
       if (!user && pathname === "/admin") {
         router.push("/login");
       } else if(user && pathname === "/login") {
@@ -46,11 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const logged = await signInWithEmailAndPassword(auth, username, password);
       setUser(logged.user);
-    } catch (error: any) {
-      if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
-        throw new Error("Credenciales incorrectas.");
-      } else {
+    } catch (error: unknown) {
+      if (error instanceof FirebaseError) {
+        if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+          throw new Error("Credenciales incorrectas.");
+        } else {
+          throw new Error(error.message || "Ocurrió un error en el inicio de sesión.");
+        }
+      } else if (error instanceof Error) {
         throw new Error(error.message || "Ocurrió un error en el inicio de sesión.");
+      } else {
+        throw new Error("Ocurrió un error desconocido.");
       }
     }
   };
@@ -79,8 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, sendPasswordResetEmail }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, loadingAuth, login, logout, sendPasswordResetEmail }}>
+      {!loadingAuth && children}
     </AuthContext.Provider>
   );
 };

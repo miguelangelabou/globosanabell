@@ -1,18 +1,15 @@
 import { Timestamp } from "firebase/firestore"
 
 interface Sale {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    DNI: string;
+    id?: string;
+    ip: string;
     location: string;
-    product: [{
+    product: {
         id: string;
         name: string;
         price: number;
         amount: number;
-    }]
+    }[]
     createdAt: Timestamp;
 }
 
