@@ -44,7 +44,7 @@ export const categories = [
     { value: "joyeria", label: "Joyeria" },
     { value: "juguetes", label: "Juguetes" },
     { value: "dulces", label: "Dulces" },
-    { value: "arreglos_florales", label: "Arreglos florales" },
+    { value: "arreglos", label: "Arreglos" },
     { value: "cumpleaños", label: "Cumpleaños" },
     { value: "bodas", label: "Bodas y eventos" },
     { value: "cestas", label: "Cestas regalo" },
@@ -55,20 +55,20 @@ export const categories = [
 export const categoryGroups = {
       "Fechas Especiales": ["14_febrero", "flores_amarillas", "cumpleaños", "bodas", "navidad", "nacimientos", "graduaciones"],
       "Productos Destacados": ["peluches", "flores", "ramos", "globos"],
-      "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "cestas", "complementos"]
+      "Otros": ["joyeria", "juguetes", "dulces", "arreglos", "cestas", "complementos"]
 };
   
 export const categoryPriority = () => {
       const month = new Date().getMonth() + 1;
     
       if (month === 1 || month === 2) {
-        return ["14_febrero", "ramos", "arreglos_florales", "peluches", "joyeria", "flores", "cumpleaños", "complementos"];
+        return ["14_febrero", "ramos", "arreglos", "peluches", "joyeria", "flores", "cumpleaños", "complementos"];
       } else if (month >= 3 && month <= 5) {
-        return ["flores_amarillas", "ramos", "arreglos_florales", "flores", "joyeria", "peluches", "cumpleaños", "complementos"];
+        return ["flores_amarillas", "ramos", "arreglos", "flores", "joyeria", "peluches", "cumpleaños", "complementos"];
       } else if (month >= 6 && month <= 8) {
         return ["cumpleaños", "graduaciones", "flores", "ramos", "peluches", "globos", "juguetes", "dulces", "joyeria", "cestas", "complementos"];
       } else if (month >= 9 && month <= 11) {
-        return ["flores_amarillas", "cumpleaños", "dulces", "juguetes", "arreglos_florales", "cestas", "complementos"];
+        return ["flores_amarillas", "cumpleaños", "dulces", "juguetes", "arreglos", "cestas", "complementos"];
       } else {
         return ["navidad", "nacimientos", "cestas", "joyeria", "peluches", "dulces", "flores", "complementos"];
       }
