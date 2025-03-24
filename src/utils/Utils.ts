@@ -61,6 +61,29 @@ export const categoryGroups = {
     "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "cestas", "complementos"]
 };
 
+export const categoryPriority = [
+    "14_febrero",
+    "21_marzo",
+    "ramos",
+    "arreglos_florales",
+    "peluches",
+    "joyeria",
+    "flores",
+    "21_septiembre",
+    "navidad",
+    "nacimientos",
+    "globos",
+    "juguetes",
+    "dulces",
+    "centros_de_mesa",
+    "regalos",
+    "detalles",
+    "cumpleaños",
+    "bodas",
+    "cestas",
+    "complementos"
+  ];
+
 export const isValidEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);

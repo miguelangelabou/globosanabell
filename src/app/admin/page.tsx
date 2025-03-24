@@ -888,7 +888,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
       const response = await fetch('https://api.imgur.com/3/image', {
         method: 'POST',
         headers: {
-          'Authorization': 'Client-ID '+process.env.NEXT_PUBLIC_IMGUR_CLIENT_ID
+          'Authorization': 'Client-ID ' + process.env.NEXT_PUBLIC_IMGUR_CLIENT_ID
         },
         body: formData
       });
@@ -938,7 +938,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
     }
   };
 
-    
   const handleImageClick = () => {
     if (fileInputRef.current) {
       (fileInputRef.current as HTMLInputElement).click();
@@ -954,7 +953,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
     
     const validTypes = ["image/png", "image/jpeg", "image/jpg"];
     if (!validTypes.includes(file.type)) {
-      alert("Por favor seleccione un archivo: webp, png, jpeg o jpg");
+      alert("Por favor seleccione un archivo: png, jpeg o jpg");
       return;
     }
     
@@ -973,11 +972,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
     reader.readAsDataURL(file);
   };
   
-  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-        <div className="p-6">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-full sm:max-w-2xl mx-4 sm:mx-auto max-h-screen overflow-y-auto">
+        <div className="p-4 sm:p-6">
           <h3 className="text-lg font-medium mb-4">
             {product?.id ? "Editar Producto" : "Nuevo Producto"}
           </h3>
@@ -1032,65 +1030,65 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
               
               <div>
                 <label className="block mb-2 font-medium">Imagen del Producto</label>
-                  <div 
-                    className="h-32 flex items-center justify-center cursor-pointer mt-12"
-                    onClick={handleImageClick}
-                  >
-                    <div className="w-48 h-48 relative border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
-                      {previewImage ? (
-                        <Image 
-                          src={previewImage} 
-                          alt="Logo preview" 
-                          className="w-full h-full object-contain"
-                          objectFit="cover"
-                          layout="fill"
-                        />
-                      ) : (
-                        <div className="text-center text-gray-500">
-                          <span className="text-lg">+</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-4 text-sm text-gray-500">
-                      <p>Click para actualizar imagen</p>
-                      <p className="text-xs">(png, jpeg, jpg - máx 2MB)</p>
-                      {logoFile && <p className="text-xs text-green-600">Nueva imagen seleccionada</p>}
-                    </div>
+                <div 
+                  className="flex flex-col items-center justify-center cursor-pointer mt-2"
+                  onClick={handleImageClick}
+                >
+                  <div className="w-40 h-40 relative border border-gray-300 overflow-hidden flex items-center justify-center hover:bg-gray-50">
+                    {previewImage ? (
+                      <Image 
+                        src={previewImage} 
+                        alt="Logo preview" 
+                        className="w-full h-full object-contain"
+                        objectFit="cover"
+                        layout="fill"
+                      />
+                    ) : (
+                      <div className="text-center text-gray-500">
+                        <span className="text-3xl">+</span>
+                      </div>
+                    )}
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    name="logoFile"
-                    onChange={handleImageChange}
-                    accept=".png,.jpeg,.jpg"
-                    className="hidden"
-                  />
+                  <div className="mt-2 text-center text-sm text-gray-500">
+                    <p>Click para actualizar imagen</p>
+                    <p className="text-xs">(png, jpeg, jpg - máx 2MB)</p>
+                    {logoFile && <p className="text-xs text-green-600">Nueva imagen seleccionada</p>}
+                  </div>
                 </div>
-                
-                {product?.id && (
-                  <div>
-                    <label className="block mb-1 font-medium">Veces Vendido</label>
-                    <input
-                      type="number"
-                      name="soldTimes"
-                      value={productData?.soldTimes || 0}
-                      className="w-full p-2 border rounded bg-gray-200"
-                      readOnly
-                    />
-                  </div>
-                )}
-              
-              <div className="flex items-center h-full">
                 <input
-                  type="checkbox"
-                  id="active"
-                  name="active"
-                  checked={productData?.active}
-                  onChange={handleInputChange}
-                  className="mr-2"
+                  ref={fileInputRef}
+                  type="file"
+                  name="logoFile"
+                  onChange={handleImageChange}
+                  accept=".png,.jpeg,.jpg"
+                  className="hidden"
                 />
-                <label htmlFor="active">Producto Activo</label>
               </div>
+            </div>
+
+            {product?.id && (
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">Veces Vendido</label>
+                <input
+                  type="number"
+                  name="soldTimes"
+                  value={productData?.soldTimes || 0}
+                  className="w-full p-2 border rounded bg-gray-200"
+                  readOnly
+                />
+              </div>
+            )}
+              
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="active"
+                name="active"
+                checked={productData?.active}
+                onChange={handleInputChange}
+                className="mr-2"
+              />
+              <label htmlFor="active">Producto Activo</label>
             </div>
             
             <div className="mb-4">
@@ -1104,7 +1102,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
               ></textarea>
             </div>
             
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-3 sm:space-y-0">
               <button
                 type="button"
                 onClick={onClose}
@@ -1294,7 +1292,7 @@ const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatc
 const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ sale, onClose, formatDateTime, getTotalAmount }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-y-auto max-h-90vh">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-full sm:max-w-2xl mx-4 sm:mx-auto overflow-y-auto max-h-[90vh]">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium">Detalles de la Venta</h3>
