@@ -1,4 +1,3 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import "../styles/globals.css";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -6,13 +5,11 @@ import { CompanyProvider } from "../contexts/CompanyContext";
 import { getDocuments } from '../utils/Utils';
 import type Company from "../interfaces/Company";
 
-// Define a default metadata
 const defaultMetadata = {
   title: "Globos Anabell",
   description: "...",
 };
 
-// This function runs on the server
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const companies = await getDocuments("company") as Company[];

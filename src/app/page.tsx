@@ -44,12 +44,10 @@ const Store = () => {
         setLoadingData(true);
         const initialProducts = await getDocuments("products") as Product[];
         
-        // Filtrar solo productos activos
         const activeProducts = initialProducts.filter(product => product.active);
         
         setProducts(activeProducts);
 
-        // Cargar carrito y lista de deseos desde localStorage
         const savedCart = localStorage.getItem("cart");
         if (savedCart) {
           setCart(JSON.parse(savedCart));
@@ -69,17 +67,14 @@ const Store = () => {
     fetchData();
   }, []);
 
-  // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
   
-  // Guardar wishlist en localStorage cuando cambie
   useEffect(() => {
     localStorage.setItem("wishlist", JSON.stringify(wishlist));
   }, [wishlist]);
 
-  // Filtrar y ordenar productos
   const filteredProducts = products.filter(product => {
 
     if (sortOption === "favorites") {
@@ -108,14 +103,12 @@ const Store = () => {
     }
   });
 
-  // Paginación
   const pageCount = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const displayedProducts = filteredProducts.slice(
     currentPage * ITEMS_PER_PAGE, 
     (currentPage + 1) * ITEMS_PER_PAGE
   );
 
-  // Agregar al carrito
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id);
     
@@ -129,7 +122,6 @@ const Store = () => {
       setCart([...cart, { product, quantity: 1 }]);
     }
     
-    // Mostrar notificación
     const notification = document.getElementById("notification");
     if (notification) {
       notification.classList.remove("hidden");
@@ -141,12 +133,10 @@ const Store = () => {
     }
   };
   
-  // Remover del carrito
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.product.id !== productId));
   };
   
-  // Actualizar cantidad en el carrito
   const updateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) {
       removeFromCart(productId);
@@ -160,7 +150,6 @@ const Store = () => {
     ));
   };
   
-  // Alternar lista de deseos
   const toggleWishlist = (productId: string) => {
     if (wishlist.includes(productId)) {
       setWishlist(wishlist.filter(id => id !== productId));
@@ -169,14 +158,11 @@ const Store = () => {
     }
   };
 
-  // Abrir modal de imagen expandida
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productSelected, setProductedSelected] = useState<Product | null>(null);
   
-  // Calcular total del carrito
   const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   
-  // Proceder al checkout
   const checkout = async () => {
     if (cart.length === 0) return;
 

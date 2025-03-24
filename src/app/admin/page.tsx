@@ -25,7 +25,6 @@ interface SaleDetailsModalProps {
   getTotalAmount: (sale: Sale) => number;
 }
 
-// Sidebar component
 const Sidebar = ({ 
   activeSection, 
   setActiveSection,
@@ -39,14 +38,12 @@ const Sidebar = ({
 }) => {
   const { company } = useCompany()
 
-  // Classes for the mobile overlay sidebar
   const mobileClasses = `
     fixed inset-0 z-30 bg-gray-800 text-white w-64 py-6 flex flex-col h-screen
     transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}
     transition-transform duration-300 ease-in-out sm:hidden
   `;
   
-  // Classes for the regular desktop sidebar
   const desktopClasses = `
     bg-gray-800 text-white w-64 py-6 hidden sm:flex flex-col h-screen
   `;
@@ -136,7 +133,6 @@ const Sidebar = ({
   );
 };
 
-// Mobile Navbar component
 const MobileNavbar = ({ 
   isOpen, 
   setIsOpen,
@@ -172,7 +168,6 @@ const MobileNavbar = ({
   );
 };
 
-// Panel principal
 const AdminPanel = () => {
   const { user, loadingAuth } = useAuth();
   const router = useRouter();
@@ -238,7 +233,6 @@ const AdminPanel = () => {
   );
 };
 
-// Componente para gestionar la información de la empresa
 const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
   const { company } = useCompany()
   const [companyData, setCompanyData] = useState<Company>({
@@ -322,7 +316,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
       const response = await fetch('https://api.imgur.com/3/image', {
         method: 'POST',
         headers: {
-          'Authorization': 'Client-ID 8222f161bcef479'
+          'Authorization': 'Client-ID '+process.env.IMGUR_CLIENT_ID
         },
         body: formData
       });
@@ -549,7 +543,6 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
   );
 };
 
-// Componente para la gestión de productos
 const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -665,14 +658,12 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
     setLoading(true);
     try {
       if (productData.id) {
-        // Actualizar producto existente
         await updateDocument("products", productData.id, productData);
         setProducts(products.map(p => 
           p.id === productData.id ? productData : p
         ));
         setMessage({ text: "Producto actualizado correctamente", type: "success" });
       } else {
-        // Crear nuevo producto
         const newId = await addDocument("products", productData);
         setProducts([...products, { ...productData, id: newId }]);
         setMessage({ text: "Producto creado correctamente", type: "success" });
@@ -881,7 +872,6 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
   );
 };
 
-// Componente Modal para editar/crear producto
 const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, categories }) => {
   const [productData, setProductData] = useState(product);
   const [previewImage, setPreviewImage] = useState<string>(product.imageURL);
@@ -898,7 +888,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
       const response = await fetch('https://api.imgur.com/3/image', {
         method: 'POST',
         headers: {
-          'Authorization': 'Client-ID 8222f161bcef479'
+          'Authorization': 'Client-ID '+process.env.IMGUR_CLIENT_ID
         },
         body: formData
       });
@@ -1137,7 +1127,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
   );
 };
 
-// Componente para el registro de ventas
 const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatch<React.SetStateAction<string>> }) => {
   const [sales, setSales] = useState<Sale[]>();
   const [loading, setLoading] = useState(true);
@@ -1302,7 +1291,6 @@ const SalesManagement = ({ setActiveSection }: { setActiveSection: React.Dispatc
   );
 };
 
-// Modal para ver detalles de la venta
 const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ sale, onClose, formatDateTime, getTotalAmount }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
