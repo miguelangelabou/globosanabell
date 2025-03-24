@@ -98,23 +98,19 @@ const Store = () => {
         return b.soldTimes - a.soldTimes;
       case "featured":
       default:
-        // Obtener la posición en el array de prioridad para cada producto.
-        const indexA = categoryPriority.indexOf(a.category);
-        const indexB = categoryPriority.indexOf(b.category);
+        const indexA = categoryPriority().indexOf(a.category);
+        const indexB = categoryPriority().indexOf(b.category);
 
-        // Si ambos productos están en la lista de prioridad, se ordena según esa posición.
         if (indexA !== -1 && indexB !== -1) {
           if (indexA !== indexB) {
             return indexA - indexB;
           }
         } 
-        // Si solo uno de ellos tiene prioridad, éste se muestra primero.
         else if (indexA !== -1) {
           return -1;
         } else if (indexB !== -1) {
           return 1;
         }
-        // Si ninguno tiene prioridad, se ordena por popularidad.
         return b.soldTimes - a.soldTimes;
     }
   });

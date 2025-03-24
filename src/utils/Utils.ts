@@ -34,8 +34,7 @@ export const addDocument = async (collectionName: string, data: (Company | Produ
 
 export const categories = [
   { value: "14_febrero", label: "14 de Febrero" },
-  { value: "21_marzo", label: "21 de Marzo" },
-  { value: "21_septiembre", label: "21 de Septiembre" },
+  { value: "flores_amarillas", label: "Flores Amarillas" },
   { value: "navidad", label: "Navidad" },
   { value: "nacimientos", label: "Nacimientos" },
   { value: "peluches", label: "Peluches" },
@@ -46,9 +45,6 @@ export const categories = [
   { value: "juguetes", label: "Juguetes" },
   { value: "dulces", label: "Dulces" },
   { value: "arreglos_florales", label: "Arreglos florales" },
-  { value: "centros_de_mesa", label: "Centros de mesa" },
-  { value: "regalos", label: "Regalos" },
-  { value: "detalles", label: "Detalles personalizados" },
   { value: "cumpleaños", label: "Cumpleaños" },
   { value: "bodas", label: "Bodas y eventos" },
   { value: "cestas", label: "Cestas regalo" },
@@ -56,33 +52,26 @@ export const categories = [
 ];
 
 export const categoryGroups = {
-    "Fechas Especiales": ["14_febrero", "21_marzo", "21_septiembre", "cumpleaños", "bodas", "navidad", "nacimientos"],
-    "Productos Destacados": ["regalos", "detalles", "peluches", "flores", "ramos", "globos"],
-    "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "centros_de_mesa", "cestas", "complementos"]
+    "Fechas Especiales": ["14_febrero", "flores_amarillas", "cumpleaños", "bodas", "navidad", "nacimientos"],
+    "Productos Destacados": ["peluches", "flores", "ramos", "globos"],
+    "Otros": ["joyeria", "juguetes", "dulces", "arreglos_florales", "cestas", "complementos"]
 };
 
-export const categoryPriority = [
-    "14_febrero",
-    "21_marzo",
-    "ramos",
-    "arreglos_florales",
-    "peluches",
-    "joyeria",
-    "flores",
-    "21_septiembre",
-    "navidad",
-    "nacimientos",
-    "globos",
-    "juguetes",
-    "dulces",
-    "centros_de_mesa",
-    "regalos",
-    "detalles",
-    "cumpleaños",
-    "bodas",
-    "cestas",
-    "complementos"
-  ];
+export const categoryPriority = () => {
+    const month = new Date().getMonth() + 1;
+  
+    if (month === 1 || month === 2) {
+      return ["14_febrero", "ramos", "arreglos_florales", "peluches", "joyeria", "flores", "cumpleaños", "complementos"];
+    } else if (month >= 3 && month <= 5) {
+      return ["flores_amarillas", "ramos", "arreglos_florales", "flores", "joyeria", "peluches", "cumpleaños", "complementos"];
+    } else if (month >= 6 && month <= 8) {
+      return ["cumpleaños", "flores", "ramos", "peluches", "globos", "juguetes", "dulces", "joyeria", "cestas", "complementos"];
+    } else if (month >= 9 && month <= 11) {
+      return ["flores_amarillas", "cumpleaños", "dulces", "juguetes", "arreglos_florales", "cestas", "complementos"];
+    } else {
+      return ["navidad", "nacimientos", "cestas", "joyeria", "peluches", "dulces", "flores", "complementos"];
+    }
+};
 
 export const isValidEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
