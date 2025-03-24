@@ -99,9 +99,9 @@ const Sidebar = ({
           </li>
         </ul>
       </nav>
-      <div className="px-4 mt-auto">
+      <div className="px-4 mt-auto w-full">
         <button 
-          className="block px-4 py-2 text-center bg-green-600 rounded hover:bg-green-700 cursor-pointer"
+          className="block px-4 py-2 text-center w-full bg-green-600 rounded hover:bg-green-700 cursor-pointer"
           onClick={()=> window.location.assign("/")}
         >
           Ir a la Tienda
@@ -283,7 +283,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     }
     
     if (file.size > 5 * 1024 * 1024) {
-      alert("El archivo debe ser menor a 2MB");
+      alert("El archivo debe ser menor a 5MB");
       return;
     }
     

@@ -10,11 +10,11 @@ const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  //const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { company, loading } = useCompany()
 
-  const { login, user, sendPasswordResetEmail, loadingAuth } = useAuth();
+  const { login, user, /*sendPasswordResetEmail,*/ loadingAuth } = useAuth();
   const router = useRouter();
 
 
@@ -71,7 +71,7 @@ const AuthPage = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
+  /*const handleForgotPassword = async () => {
     if (!email || !isValidEmail(email)) {
       setError("Por favor ingrese un correo electrónico válido para restablecer su contraseña");
       return;
@@ -87,7 +87,7 @@ const AuthPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  };*/
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -114,11 +114,11 @@ const AuthPage = () => {
           </div>
         )}
         
-        {message && (
+        {/*message && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
             {message}
           </div>
-        )}
+        )*/}
         
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
@@ -154,13 +154,14 @@ const AuthPage = () => {
           <div className="flex items-center justify-between text-sm">
             <div></div>
             
-            <button
+            <div></div>
+            {/*<button
               type="button"
               onClick={handleForgotPassword}
               className="text-blue-600 hover:text-blue-800"
             >
               ¿Olvidó su contraseña?
-            </button>
+            </button>*/}
           </div>
           
           <button
