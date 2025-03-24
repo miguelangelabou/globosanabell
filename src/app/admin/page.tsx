@@ -278,7 +278,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
     
     const validTypes = ["image/webp", "image/png", "image/jpeg", "image/jpg"];
     if (!validTypes.includes(file.type)) {
-      alert("Por favor seleccione un archivo: webp, png, jpeg o jpg");
+      alert("Por favor seleccione un archivo: png, jpeg o jpg");
       return;
     }
     
@@ -444,7 +444,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               </div>
               <div className="ml-4 text-sm text-gray-500">
                 <p>Click para actualizar logo</p>
-                <p className="text-xs">(webp, png, jpeg, jpg - máx 2MB)</p>
+                <p className="text-xs">(png, jpeg, jpg - máx 5MB)</p>
                 {logoFile && <p className="text-xs text-green-600">Nueva imagen seleccionada</p>}
               </div>
             </div>
@@ -453,7 +453,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
               type="file"
               name="logoFile"
               onChange={handleImageChange}
-              accept=".webp,.png,.jpeg,.jpg"
+              accept=",.png,.jpeg,.jpg"
               className="hidden"
             />
           </div>
@@ -952,13 +952,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
 
     if(!file) return;
     
-    const validTypes = ["image/webp", "image/png", "image/jpeg", "image/jpg"];
+    const validTypes = ["image/png", "image/jpeg", "image/jpg"];
     if (!validTypes.includes(file.type)) {
       alert("Por favor seleccione un archivo: webp, png, jpeg o jpg");
       return;
     }
     
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 2 * 1024 * 1024) {
       alert("El archivo debe ser menor a 2MB");
       return;
     }
@@ -1053,7 +1053,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
                     </div>
                     <div className="ml-4 text-sm text-gray-500">
                       <p>Click para actualizar imagen</p>
-                      <p className="text-xs">(webp, png, jpeg, jpg - máx 2MB)</p>
+                      <p className="text-xs">(png, jpeg, jpg - máx 2MB)</p>
                       {logoFile && <p className="text-xs text-green-600">Nueva imagen seleccionada</p>}
                     </div>
                   </div>
@@ -1062,7 +1062,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
                     type="file"
                     name="logoFile"
                     onChange={handleImageChange}
-                    accept=".webp,.png,.jpeg,.jpg"
+                    accept=".png,.jpeg,.jpg"
                     className="hidden"
                   />
                 </div>
