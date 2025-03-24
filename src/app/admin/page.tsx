@@ -316,7 +316,7 @@ const CompanyInfo = ({ setActiveSection }: { setActiveSection: React.Dispatch<Re
       const response = await fetch('https://api.imgur.com/3/image', {
         method: 'POST',
         headers: {
-          'Authorization': 'Client-ID '+process.env.IMGUR_CLIENT_ID
+          'Authorization': 'Client-ID '+process.env.NEXT_PUBLIC_IMGUR_CLIENT_ID
         },
         body: formData
       });
@@ -888,7 +888,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, c
       const response = await fetch('https://api.imgur.com/3/image', {
         method: 'POST',
         headers: {
-          'Authorization': 'Client-ID '+process.env.IMGUR_CLIENT_ID
+          'Authorization': 'Client-ID '+process.env.NEXT_PUBLIC_IMGUR_CLIENT_ID
         },
         body: formData
       });
