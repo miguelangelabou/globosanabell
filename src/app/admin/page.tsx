@@ -839,31 +839,56 @@ const ProductsManagement = ({ setActiveSection }: { setActiveSection: React.Disp
       {/*Modal de Imagen Expandida*/}
       {isModalOpenImage && productedSelected && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
           onClick={() => {
-            setProductedSelected(null)
+            setProductedSelected(null);
             setIsModalOpenImage(false);
           }}
         >
-          <div className="relative max-w-4xl max-h-screen p-4">
+          <div className="relative p-4 w-full flex justify-center">
             <button 
-              className="absolute flex items-center text-lg justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
+              className="absolute flex items-center justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
               onClick={(e) => {
                 e.stopPropagation();
-                setProductedSelected(null)
-                setIsModalOpenImage(false);
+                setProductedSelected(null);
+                setIsModalOpen(false);
               }}
             >
               ×
             </button>
-            <div className="relative w-full h-full" onClick={e => e.stopPropagation()}>
-              <Image 
-                src={productedSelected.imageURL} 
-                alt={productedSelected.name}
-                width={800}
-                height={600}
-                className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
-              />
+
+            <div className="w-full flex justify-center">
+              {/* Móviles: versión responsive */}
+              <div className="block md:hidden w-full max-w-md">
+                <Image 
+                  src={productedSelected.imageURL} 
+                  alt={productedSelected.name}
+                  layout="responsive"
+                  width={800}
+                  height={600}
+                  objectFit="contain"
+                />
+              </div>
+
+              {/* Laptops: versión con contenedor fijo (tamaño medio) */}
+              <div className="hidden md:block lg:hidden relative" style={{ width: '600px', height: '450px' }}>
+                <Image 
+                  src={productedSelected.imageURL} 
+                  alt={productedSelected.name}
+                  layout="fill"
+                  objectFit="contain"
+                />
+              </div>
+
+              {/* Computadoras de escritorio: versión con contenedor fijo (tamaño completo) */}
+              <div className="hidden lg:block relative" style={{ width: '800px', height: '600px' }}>
+                <Image 
+                  src={productedSelected.imageURL} 
+                  alt={productedSelected.name}
+                  layout="fill"
+                  objectFit="contain"
+                />
+              </div>
             </div>
           </div>
         </div>

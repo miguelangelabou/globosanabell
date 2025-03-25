@@ -98,8 +98,8 @@ const Store = () => {
         return b.soldTimes - a.soldTimes;
       case "featured":
       default:
-        const indexA = categoryPriority().indexOf(a.category);
-        const indexB = categoryPriority().indexOf(b.category);
+        const indexA = categoryPriority().categories.indexOf(a.category);
+        const indexB = categoryPriority().categories.indexOf(b.category);
 
         if (indexA !== -1 && indexB !== -1) {
           if (indexA !== indexB) {
@@ -582,158 +582,328 @@ const Store = () => {
                 </div>
               )}
               
-              <div className="mb-4 text-sm text-gray-500">
+              <div className="mb-4 text-sm text-gray-500 inline-flex items-center justify-between w-full">
                 {filteredProducts.length} resultados
-              </div>
-              
-              {displayedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {displayedProducts.map((product, index) => (
-                    <div key={index} className="bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
-                      <div className="relative h-40 sm:h-56 overflow-hidden">
-                        <Image 
-                          onClick={() => {
-                            setProductedSelected(product);
-                            setIsModalOpen(true);                        
-                          }}
-                          src={product.imageURL} 
-                          alt={product.name} 
-                          layout="fill"
-                          objectFit="cover"
-                          className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
-                        />
-                        <button
-                          onClick={() => toggleWishlist(product.id)}
-                          className="absolute cursor-pointer top-2 right-2 p-2 bg-white bg-opacity-70 rounded-full shadow-sm hover:bg-opacity-100 transition-colors"
-                        >
-                          <HeartIcon 
-                            className={`h-5 w-5 ${wishlist.includes(product.id) ? "text-pink-500 fill-pink-500" : "text-gray-400"}`}
-                          />
-                        </button>
-                      </div>
-                      <div className="p-2 sm:p-4 flex flex-col flex-grow">
-                        <div className="mb-2">
-                          <span className="inline-block px-2 py-1 text-xs font-semibold text-pink-600 bg-pink-100 rounded-full">
-                            {getCategoryLabel(product.category)}
-                          </span>
-                        </div>
-                        <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-1">{product.name}</h3>
-                        <p className="text-gray-500 text-[12px] sm:text-sm mb-2 line-clamp-2">{product.description}</p>
-                        <div className="mt-auto pt-4 flex items-center justify-between">
-                          <p className="text-base sm:text-xl font-bold text-gray-900">{product.price}€</p>
-                          <button
-                            onClick={() => addToCart(product)}
-                            className="flex items-center justify-center cursor-pointer px-1.5 sm:px-3 py-1 sm:py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-                          >
-                            <ShoppingCartIcon className="h-3 sm:h-5 w-3 sm:w-5 mr-1" />
-                            <span className="text-xs">Añadir</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                ) : (
-                  <div className="bg-white p-8 rounded-lg shadow text-center">
-                    <div className="flex flex-col items-center">
-                      <MagnifyingGlassIcon className="h-12 w-12 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-1">No se encontraron productos</h3>
-                      <p className="text-gray-500 mb-4">Intenta con otros filtros o términos de búsqueda</p>
-                      <button 
-                        onClick={() => {
-                          setSearchTerm("");
-                          setSelectedCategory("");
-                          setPriceRange({min: 0, max: 1000});
-                          setCurrentPage(0);
-                          setSortOption("featured")
-                        }}
-                        className="inline-flex items-center justify-center cursor-pointer px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
-                      >
-                        Limpiar filtros
-                      </button>
-                    </div>
-                  </div>
+
+                {/* Botones de paginación fijos al final */}
+                <div className="flex justify-center hidden md:block">
+                  <button 
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                    className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                      currentPage === 0 
+                        ? "text-gray-400 cursor-not-allowed" 
+                        : "text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Anterior
+                  </button>
+                  
+                  {currentPage > 0 && (
+                    <button
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                        currentPage === currentPage - 1
+                          ? "bg-pink-600 text-white"
+                          : "text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {currentPage}
+                    </button>
                   )}
                   
-                  {/*Modal de Imagen Expandida*/}
-                  {isModalOpen && productSelected && (
-                    <div 
-                      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                      onClick={() => {
-                        setProductedSelected(null)
+                  <button
+                    onClick={() => setCurrentPage(currentPage)}
+                    className="mx-1 px-3 py-2 rounded-md cursor-pointer bg-pink-600 text-white"
+                  >
+                    {currentPage + 1}
+                  </button>
+                  
+                  {currentPage < pageCount - 1 && (
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                        currentPage === currentPage + 1
+                          ? "bg-pink-600 text-white"
+                          : "text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {currentPage + 2}
+                    </button>
+                  )}
+                  
+                  <button 
+                    onClick={() => setCurrentPage(Math.min(pageCount - 1, currentPage + 1))}
+                    disabled={currentPage === pageCount - 1}
+                    className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                      currentPage === pageCount - 1 
+                        ? "text-gray-400 cursor-not-allowed" 
+                        : "text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex flex-col">
+                {/* Contenedor de productos o mensaje */}
+                <div className="flex-grow">
+                  {displayedProducts.length > 0 ? (
+                    <div>
+                      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {displayedProducts.map((product, index) => (
+                          <div
+                            key={index}
+                            className={`${
+                              product.category === categoryPriority().categories[0]
+                                ? categoryPriority().backgroundColor
+                                : "bg-white"
+                            } rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col`}
+                          >
+                            <div className="relative h-40 sm:h-56 overflow-hidden">
+                              <Image 
+                                onClick={() => {
+                                  setProductedSelected(product);
+                                  setIsModalOpen(true);
+                                }}
+                                src={product.imageURL} 
+                                alt={product.name} 
+                                layout="fill"
+                                objectFit="cover"
+                                className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
+                              />
+                              <button
+                                onClick={() => toggleWishlist(product.id)}
+                                className="absolute cursor-pointer top-2 right-2 p-2 bg-white bg-opacity-70 rounded-full shadow-sm hover:bg-opacity-100 transition-colors"
+                              >
+                                <HeartIcon 
+                                  className={`h-5 w-5 ${
+                                    wishlist.includes(product.id)
+                                      ? "text-pink-500 fill-pink-500"
+                                      : "text-gray-400"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                            <div className="p-2 sm:p-4 flex flex-col">
+                              <div className="mb-2">
+                                <span className="inline-block px-2 py-1 text-[9px] sm:text-xs font-semibold text-pink-600 bg-pink-100 rounded-full">
+                                  {getCategoryLabel(product.category)}
+                                </span>
+                              </div>
+                              <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-1">
+                                {product.name}
+                              </h3>
+                              <div className="mt-auto pt-4 flex items-center justify-between">
+                                <p className="text-base sm:text-xl font-bold text-gray-900">
+                                  {product.price}€
+                                </p>
+                                <button
+                                  onClick={() => addToCart(product)}
+                                  className="flex items-center justify-center cursor-pointer px-1.5 sm:px-3 py-1 sm:py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                                >
+                                  <ShoppingCartIcon className="h-3 sm:h-5 w-3 sm:w-5 mr-1" />
+                                  <span className="text-xs">Añadir</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex mx-auto justify-center mt-4 block md:hidden">
+                        <button 
+                          onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                          disabled={currentPage === 0}
+                          className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                            currentPage === 0 
+                              ? "text-gray-400 cursor-not-allowed text-sm" 
+                              : "text-gray-700 hover:bg-gray-200 text-sm"
+                          }`}
+                        >
+                          Anterior
+                        </button>
+                        
+                        {currentPage > 0 && (
+                          <button
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            className={`mx-1 px-2 py-1 rounded-md cursor-pointer ${
+                              currentPage === currentPage - 1
+                                ? "bg-pink-600 text-white text-sm"
+                                : "text-gray-700 hover:bg-gray-200 text-sm"
+                            }`}
+                          >
+                            {currentPage}
+                          </button>
+                        )}
+                        
+                        <button
+                          onClick={() => setCurrentPage(currentPage)}
+                          className="mx-1 px-2 py-1 text-sm rounded-md cursor-pointer bg-pink-600 text-white"
+                        >
+                          {currentPage + 1}
+                        </button>
+                        
+                        {currentPage < pageCount - 1 && (
+                          <button
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                              currentPage === currentPage + 1
+                                ? "bg-pink-600 text-white text-sm"
+                                : "text-gray-700 hover:bg-gray-200 text-sm"
+                            }`}
+                          >
+                            {currentPage + 2}
+                          </button>
+                        )}
+                        
+                        <button 
+                          onClick={() => setCurrentPage(Math.min(pageCount - 1, currentPage + 1))}
+                          disabled={currentPage === pageCount - 1}
+                          className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
+                            currentPage === pageCount - 1 
+                              ? "text-gray-400 cursor-not-allowed text-sm" 
+                              : "text-gray-700 hover:bg-gray-200 text-sm"
+                          }`}
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-8 rounded-lg shadow text-center flex items-center justify-center h-full">
+                      <div className="flex flex-col items-center">
+                        <MagnifyingGlassIcon className="h-12 w-12 text-gray-300 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-1">
+                          No se encontraron productos
+                        </h3>
+                        <p className="text-gray-500 mb-4">
+                          Intenta con otros filtros o términos de búsqueda
+                        </p>
+                        <button 
+                          onClick={() => {
+                            setSearchTerm("");
+                            setSelectedCategory("");
+                            setPriceRange({ min: 0, max: 1000 });
+                            setCurrentPage(0);
+                            setSortOption("featured");
+                          }}
+                          className="inline-flex items-center justify-center cursor-pointer px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
+                        >
+                          Limpiar filtros
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+                  
+              {/*Modal de Imagen Expandida*/}
+              {isModalOpen && productSelected && (
+                <div 
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                  onClick={() => {
+                    setProductedSelected(null);
+                    setIsModalOpen(false);
+                  }}
+                >
+                  <div className="relative p-4 w-full max-w-full lg:max-w-4xl">
+                    <button 
+                      className="absolute flex items-center justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProductedSelected(null);
                         setIsModalOpen(false);
                       }}
                     >
-                      <div className="relative max-w-4xl max-h-screen p-4">
-                        <button 
-                          className="absolute flex items-center text-lg justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setProductedSelected(null)
-                            setIsModalOpen(false);
-                          }}
-                        >
-                          ×
-                        </button>
-                        <div className="relative w-full h-full" onClick={e => e.stopPropagation()}>
-                          <Image 
-                            src={productSelected.imageURL} 
-                            alt={productSelected.name}
-                            width={800}
-                            height={600}
-                            className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
-                          />
-                        </div>
+                      ×
+                    </button>
+                    <div className="relative w-full">
+                      {/* Versión para móviles (responsive) */}
+                      <div className="block lg:hidden">
+                        <Image 
+                          src={productSelected.imageURL} 
+                          alt={productSelected.name}
+                          layout="responsive"
+                          width={800}
+                          height={600}
+                          objectFit="contain"
+                        />
+                      </div>
+                      {/* Versión para pantallas grandes: tamaño fijo */}
+                      <div className="hidden lg:block relative w-[800px] h-[600px]">
+                        <Image 
+                          src={productSelected.imageURL} 
+                          alt={productSelected.name}
+                          layout="fill"
+                          objectFit="contain"
+                        />
                       </div>
                     </div>
-                  )}
-
-                  {/* Paginación */}
-                  {pageCount > 1 && (
-                  <div className="mt-8 flex justify-center">
-                    <nav className="flex items-center">
-                      <button 
-                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                        disabled={currentPage === 0}
-                        className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
-                          currentPage === 0 
-                            ? "text-gray-400 cursor-not-allowed" 
-                            : "text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        Anterior
-                      </button>
-                      
-                      {Array.from({ length: pageCount }).map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentPage(index)}
-                          className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
-                            currentPage === index
-                              ? "bg-pink-600 text-white"
-                              : "text-gray-700 hover:bg-gray-200"
-                          }`}
-                        >
-                          {index + 1}
-                        </button>
-                      ))}
-                      
-                      <button 
-                        onClick={() => setCurrentPage(Math.min(pageCount - 1, currentPage + 1))}
-                        disabled={currentPage === pageCount - 1}
-                        className={`mx-1 px-3 py-2 rounded-md cursor-pointer ${
-                          currentPage === pageCount - 1 
-                            ? "text-gray-400 cursor-not-allowed" 
-                            : "text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        Siguiente
-                      </button>
-                    </nav>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Paginación */}
+              {isModalOpen && productSelected && (
+                <div 
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                  onClick={() => {
+                    setProductedSelected(null);
+                    setIsModalOpen(false);
+                  }}
+                >
+                  <div className="relative p-4 w-full flex justify-center">
+                    <button 
+                      className="absolute flex items-center justify-center top-2 right-2 bg-white cursor-pointer w-8 h-8 rounded-full text-black z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProductedSelected(null);
+                        setIsModalOpen(false);
+                      }}
+                    >
+                      ×
+                    </button>
+
+                    <div className="w-full flex justify-center">
+                      {/* Móviles: versión responsive */}
+                      <div className="block md:hidden w-full max-w-md">
+                        <Image 
+                          src={productSelected.imageURL} 
+                          alt={productSelected.name}
+                          layout="responsive"
+                          width={800}
+                          height={600}
+                          objectFit="contain"
+                        />
+                      </div>
+
+                      {/* Laptops: versión con contenedor fijo (tamaño medio) */}
+                      <div className="hidden md:block lg:hidden relative" style={{ width: '600px', height: '450px' }}>
+                        <Image 
+                          src={productSelected.imageURL} 
+                          alt={productSelected.name}
+                          layout="fill"
+                          objectFit="contain"
+                        />
+                      </div>
+
+                      {/* Computadoras de escritorio: versión con contenedor fijo (tamaño completo) */}
+                      <div className="hidden lg:block relative" style={{ width: '800px', height: '600px' }}>
+                        <Image 
+                          src={productSelected.imageURL} 
+                          alt={productSelected.name}
+                          layout="fill"
+                          objectFit="contain"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
         </div>
       </main>
       
