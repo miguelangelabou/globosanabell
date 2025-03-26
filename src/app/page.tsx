@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Timestamp } from "firebase/firestore"
 import { useCompany } from '../contexts/CompanyContext';
@@ -30,6 +30,11 @@ const Store = () => {
     const savedWishlist = localStorage.getItem("wishlist");
     return savedWishlist ? JSON.parse(savedWishlist) : [];
   });
+
+  const [autoScrollActive, setAutoScrollActive] = useState(false);
+  const idleTimeRef = useRef<number>(0);
+  const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const idleIntervalRef = useRef<NodeJS.Timeout | null>(null);  
   
   const ITEMS_PER_PAGE = 12;
   
@@ -222,6 +227,63 @@ const Store = () => {
     
     router.push('/thank-you');
   }
+
+  useEffect(() => {
+    const resetIdleTimer = () => {
+      idleTimeRef.current = 0;
+      if (autoScrollActive) {
+        setAutoScrollActive(false);
+        if (autoScrollIntervalRef.current) {
+          clearInterval(autoScrollIntervalRef.current);
+          autoScrollIntervalRef.current = null;
+        }
+      }
+    };
+
+    const events = ["scroll", "click", "mousemove", "keydown"];
+    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
+
+    idleIntervalRef.current = setInterval(() => {
+      idleTimeRef.current += 1000; // Incrementa cada segundo
+      // 10 minutos = 600000 ms
+      if (idleTimeRef.current >= 10000 && !autoScrollActive) {
+        setAutoScrollActive(true);
+      }
+    }, 1000);
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
+      if (idleIntervalRef.current) clearInterval(idleIntervalRef.current);
+      if (autoScrollIntervalRef.current) clearInterval(autoScrollIntervalRef.current);
+    };
+  }, [autoScrollActive]);
+
+  useEffect(() => {
+    if (autoScrollActive) {
+      autoScrollIntervalRef.current = setInterval(() => {
+        // Calcula el 1% de la altura total del documento
+        const scrollAmount = document.body.offsetHeight * 0.01;
+        window.scrollBy({ top: scrollAmount, behavior: "smooth" });
+
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 10) {
+          setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }, 1000); // Cada 1 segundo
+    } else {
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+    };
+  }, [autoScrollActive, pageCount]);
   
   if (loading && loadingData) {
     return (
