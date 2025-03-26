@@ -247,7 +247,7 @@ const Store = () => {
 
     idleIntervalRef.current = setInterval(() => {
       idleTimeRef.current += 1000; // Incrementa cada segundo
-      if (idleTimeRef.current >= 600000 && !autoScrollActive) {
+      if (idleTimeRef.current >= 10000 && !autoScrollActive) {
         setAutoScrollActive(true);
       }
     }, 1000);
@@ -259,7 +259,6 @@ const Store = () => {
     };
   }, [autoScrollActive]);
 
-  // Auto-scroll suave cuando se detecta inactividad
   useEffect(() => {
     const smoothScroll = () => {
       if (!autoScrollActive) return;
@@ -271,13 +270,12 @@ const Store = () => {
 
         window.scrollBy(0, scrollStep);
 
-        // Detectar los botones de paginación
-        const paginationButtons = document.getElementById("pagination-buttons");
-        if (paginationButtons) {
-          const rect = paginationButtons.getBoundingClientRect();
+        // Detectar el contenedor de productos
+        const productContainer = document.getElementById("product-container");
+        if (productContainer) {
+          const rect = productContainer.getBoundingClientRect();
 
-          // Si la parte inferior de la pantalla toca los botones de paginación
-          if (rect.top <= window.innerHeight) {
+          if (rect.bottom <= window.innerHeight) {
             setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
             window.scrollTo({ top: 0, behavior: "smooth" });
           } else {
@@ -727,7 +725,7 @@ const Store = () => {
               
               <div className="flex flex-col">
                 {/* Contenedor de productos o mensaje */}
-                <div className="flex-grow">
+                <div id="product-container" className="flex-grow">
                   {displayedProducts.length > 0 ? (
                     <div>
                       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
