@@ -33,8 +33,8 @@ const Store = () => {
 
   const [autoScrollActive, setAutoScrollActive] = useState(false);
   const idleTimeRef = useRef<number>(0);
-  const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const idleIntervalRef = useRef<NodeJS.Timeout | null>(null);  
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const idleIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const ITEMS_PER_PAGE = 12;
   
@@ -228,25 +228,26 @@ const Store = () => {
     router.push('/thank-you');
   }
 
-  useEffect(() => {
-    const resetIdleTimer = () => {
-      idleTimeRef.current = 0;
-      if (autoScrollActive) {
-        setAutoScrollActive(false);
-        if (autoScrollIntervalRef.current) {
-          clearInterval(autoScrollIntervalRef.current);
-          autoScrollIntervalRef.current = null;
-        }
+  // Función para reiniciar el contador de inactividad y detener el auto-scroll
+  const resetIdleTimer = () => {
+    idleTimeRef.current = 0;
+    if (autoScrollActive) {
+      setAutoScrollActive(false);
+      if (autoScrollFrameRef.current) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
       }
-    };
+    }
+  };
 
+  // Detectar inactividad durante 10 minutos (600000 ms) y activar el auto-scroll
+  useEffect(() => {
     const events = ["scroll", "click", "mousemove", "keydown"];
     events.forEach((event) => window.addEventListener(event, resetIdleTimer));
 
     idleIntervalRef.current = setInterval(() => {
       idleTimeRef.current += 1000; // Incrementa cada segundo
-      // 10 minutos = 600000 ms
-      if (idleTimeRef.current >= 10000 && !autoScrollActive) {
+      if (idleTimeRef.current >= 600000 && !autoScrollActive) {
         setAutoScrollActive(true);
       }
     }, 1000);
@@ -254,34 +255,50 @@ const Store = () => {
     return () => {
       events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
       if (idleIntervalRef.current) clearInterval(idleIntervalRef.current);
-      if (autoScrollIntervalRef.current) clearInterval(autoScrollIntervalRef.current);
+      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
     };
   }, [autoScrollActive]);
 
+  // Auto-scroll suave cuando se detecta inactividad
   useEffect(() => {
-    if (autoScrollActive) {
-      autoScrollIntervalRef.current = setInterval(() => {
-        // Calcula el 1% de la altura total del documento
-        const scrollAmount = document.body.offsetHeight * 0.01;
-        window.scrollBy({ top: scrollAmount, behavior: "smooth" });
+    const smoothScroll = () => {
+      if (!autoScrollActive) return;
 
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 10) {
-          setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
-          window.scrollTo({ top: 0, behavior: "smooth" });
+      const scrollStep = document.body.offsetHeight * 0.0001; // 0.01% del total por frame
+
+      const scroll = () => {
+        if (!autoScrollActive) return;
+
+        window.scrollBy(0, scrollStep);
+
+        // Detectar los botones de paginación
+        const paginationButtons = document.getElementById("pagination-buttons");
+        if (paginationButtons) {
+          const rect = paginationButtons.getBoundingClientRect();
+
+          // Si la parte inferior de la pantalla toca los botones de paginación
+          if (rect.top <= window.innerHeight) {
+            setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            autoScrollFrameRef.current = requestAnimationFrame(scroll);
+          }
+        } else {
+          autoScrollFrameRef.current = requestAnimationFrame(scroll);
         }
-      }, 1000); // Cada 1 segundo
+      };
+
+      scroll();
+    };
+
+    if (autoScrollActive) {
+      smoothScroll();
     } else {
-      if (autoScrollIntervalRef.current) {
-        clearInterval(autoScrollIntervalRef.current);
-        autoScrollIntervalRef.current = null;
-      }
+      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
     }
 
     return () => {
-      if (autoScrollIntervalRef.current) {
-        clearInterval(autoScrollIntervalRef.current);
-        autoScrollIntervalRef.current = null;
-      }
+      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
     };
   }, [autoScrollActive, pageCount]);
   
@@ -1123,4 +1140,4 @@ const Store = () => {
   );
 };
 
-export default Store;                    
+export default Store;
