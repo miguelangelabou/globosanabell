@@ -49,7 +49,8 @@ export const categories = [
     { value: "bodas", label: "Bodas y eventos" },
     { value: "cestas", label: "Cestas regalo" },
     { value: "complementos", label: "Complementos" },
-    { value: "graduaciones", label: "Graduaciones" }
+    { value: "graduaciones", label: "Graduaciones" },
+    { value: "promociones", label: "Promociones" }
 ];
   
 export const categoryGroups = {
@@ -61,24 +62,18 @@ export const categoryGroups = {
 export const categoryPriority=()=>{
   const month=new Date().getMonth()+1;
   let categories;
-  let backgroundColor;
   if(month===1||month===2){
-      categories=["14_febrero","ramos","arreglos","peluches","joyeria","flores","cumpleaños","complementos"];
-      backgroundColor="#FFB6C1";
+      categories=["promociones", "14_febrero","ramos","arreglos","peluches","joyeria","flores","cumpleaños","complementos"];
   }else if(month>=3&&month<=5){
-      categories=["flores_amarillas","ramos","arreglos","flores","joyeria","peluches","cumpleaños","complementos"];
-      backgroundColor="#FFFFE0";
+      categories=["promociones", "flores_amarillas","ramos","arreglos","flores","joyeria","peluches","cumpleaños","complementos"];
   }else if(month>=6&&month<=8){
-      categories=["cumpleaños","graduaciones","flores","ramos","peluches","globos","juguetes","dulces","joyeria","cestas","complementos"];
-      backgroundColor="#ADD8E6";
+      categories=["promociones", "cumpleaños","graduaciones","flores","ramos","peluches","globos","juguetes","dulces","joyeria","cestas","complementos"];
   }else if(month>=9&&month<=11){
-      categories=["flores_amarillas","cumpleaños","dulces","juguetes","arreglos","cestas","complementos"];
-      backgroundColor="#FFE4B5";
+      categories=["promociones", "flores_amarillas","cumpleaños","dulces","juguetes","arreglos","cestas","complementos"];
   }else{
-      categories=["navidad","nacimientos","cestas","joyeria","peluches","dulces","flores","complementos"];
-      backgroundColor="#F08080";
+      categories=["promociones", "navidad","nacimientos","cestas","joyeria","peluches","dulces","flores","complementos"];
   }
-  return{categories,backgroundColor};
+  return { categories };
 };
 
 export const isValidEmail = (email: string) => {

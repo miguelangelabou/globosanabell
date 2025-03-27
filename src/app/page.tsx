@@ -32,10 +32,10 @@ const Store = () => {
   });
 
   const [autoScrollActive, setAutoScrollActive] = useState(false);
-  const idleTimeRef = useRef<number>(0);
+  const idleTimeRef = useRef(0);
   const autoScrollFrameRef = useRef<number | null>(null);
-  const idleIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const idleIntervalRef = useRef<number | null>(null);  
+
   const ITEMS_PER_PAGE = 12;
   
   const getCategoryLabel = (value: string) => {
@@ -228,34 +228,33 @@ const Store = () => {
     router.push('/thank-you');
   }
 
-  // Función para reiniciar el contador de inactividad y detener el auto-scroll
   const resetIdleTimer = () => {
     idleTimeRef.current = 0;
     if (autoScrollActive) {
       setAutoScrollActive(false);
-      if (autoScrollFrameRef.current) {
+      if (autoScrollFrameRef.current !== null) {
         cancelAnimationFrame(autoScrollFrameRef.current);
         autoScrollFrameRef.current = null;
       }
     }
   };
 
-  // Detectar inactividad durante 10 minutos (600000 ms) y activar el auto-scroll
   useEffect(() => {
     const events = ["scroll", "click", "mousemove", "keydown"];
     events.forEach((event) => window.addEventListener(event, resetIdleTimer));
 
-    idleIntervalRef.current = setInterval(() => {
-      idleTimeRef.current += 1000; // Incrementa cada segundo
-      if (idleTimeRef.current >= 10000 && !autoScrollActive) {
+    idleIntervalRef.current = window.setInterval(() => {
+      idleTimeRef.current += 1000;
+
+      if (idleTimeRef.current >= 600000 && !autoScrollActive) {
         setAutoScrollActive(true);
       }
     }, 1000);
 
     return () => {
       events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
-      if (idleIntervalRef.current) clearInterval(idleIntervalRef.current);
-      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
+      if (idleIntervalRef.current !== null) clearInterval(idleIntervalRef.current);
+      if (autoScrollFrameRef.current !== null) cancelAnimationFrame(autoScrollFrameRef.current);
     };
   }, [autoScrollActive]);
 
@@ -263,21 +262,24 @@ const Store = () => {
     const smoothScroll = () => {
       if (!autoScrollActive) return;
 
-      const scrollStep = document.body.offsetHeight * 0.0001; // 0.01% del total por frame
+      const scrollStep = document.body.offsetHeight * 0.02;
 
       const scroll = () => {
         if (!autoScrollActive) return;
 
-        window.scrollBy(0, scrollStep);
+        window.scrollTo({
+          top: window.scrollY + scrollStep,
+          behavior: 'smooth'
+        });
 
-        // Detectar el contenedor de productos
-        const productContainer = document.getElementById("product-container");
-        if (productContainer) {
-          const rect = productContainer.getBoundingClientRect();
+        const productsContainer = document.getElementById("products-container");
+        if (productsContainer) {
+          const rect = productsContainer.getBoundingClientRect();
 
           if (rect.bottom <= window.innerHeight) {
             setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
             window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
           } else {
             autoScrollFrameRef.current = requestAnimationFrame(scroll);
           }
@@ -292,11 +294,11 @@ const Store = () => {
     if (autoScrollActive) {
       smoothScroll();
     } else {
-      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
+      if (autoScrollFrameRef.current !== null) cancelAnimationFrame(autoScrollFrameRef.current);
     }
 
     return () => {
-      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
+      if (autoScrollFrameRef.current !== null) cancelAnimationFrame(autoScrollFrameRef.current);
     };
   }, [autoScrollActive, pageCount]);
   
@@ -412,9 +414,19 @@ const Store = () => {
                     setSelectedCategory("");
                     setCurrentPage(0);
                   }}
-                  className={`block mb-2 text-sm cursor-pointer ${selectedCategory === "" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
+                  className={`block  text-sm cursor-pointer ${selectedCategory === "" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
                 >
                   Todas las categorías
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedCategory("promociones");
+                    setCurrentPage(0);
+                  }}
+                  className={`block mb-2 text-sm cursor-pointer ${selectedCategory === "promociones" ? "font-semibold text-pink-600" : "text-gray-700 hover:text-pink-600"}`}
+                >
+                  Promociones
                 </button>
                 
                 {Object.entries(categoryGroups).map(([groupName, categoryValues]) => (
@@ -725,18 +737,14 @@ const Store = () => {
               
               <div className="flex flex-col">
                 {/* Contenedor de productos o mensaje */}
-                <div id="product-container" className="flex-grow">
+                <div className="flex-grow">
                   {displayedProducts.length > 0 ? (
-                    <div>
+                    <div id="products-container">
                       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {displayedProducts.map((product, index) => (
                           <div
                             key={index}
-                            className={`${
-                              product.category === categoryPriority().categories[0]
-                                ? categoryPriority().backgroundColor
-                                : "bg-white"
-                            } rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col`}
+                            className={`bg-white rounded-lg shadow-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col`}
                           >
                             <div className="relative h-40 sm:h-56 overflow-hidden">
                               <Image 
