@@ -246,15 +246,17 @@ const Store = () => {
     idleIntervalRef.current = window.setInterval(() => {
       idleTimeRef.current += 1000;
 
-      if (idleTimeRef.current >= 600000 && !autoScrollActive) {
-        setAutoScrollActive(true);
+      if (idleTimeRef.current >= 3000 && !autoScrollActive) {
+        setInterval(() => {
+          setAutoScrollActive(true);
+        }, 200)
       }
     }, 1000);
 
     return () => {
       events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
-      if (idleIntervalRef.current !== null) clearInterval(idleIntervalRef.current);
-      if (autoScrollFrameRef.current !== null) cancelAnimationFrame(autoScrollFrameRef.current);
+      if (idleIntervalRef.current !== null) setAutoScrollActive(false);
+      if (autoScrollFrameRef.current !== null) setAutoScrollActive(false);
     };
   }, [autoScrollActive]);
 
@@ -262,7 +264,7 @@ const Store = () => {
     const smoothScroll = () => {
       if (!autoScrollActive) return;
 
-      const scrollStep = document.body.offsetHeight * 0.02;
+      const scrollStep = document.body.offsetHeight * 0.005;
 
       const scroll = () => {
         if (!autoScrollActive) return;
@@ -276,15 +278,11 @@ const Store = () => {
         if (productsContainer) {
           const rect = productsContainer.getBoundingClientRect();
 
-          if (rect.bottom <= window.innerHeight) {
+          if ((rect.bottom + 200) <= window.innerHeight) {
             setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
             window.scrollTo({ top: 0, behavior: "smooth" });
             return;
-          } else {
-            autoScrollFrameRef.current = requestAnimationFrame(scroll);
           }
-        } else {
-          autoScrollFrameRef.current = requestAnimationFrame(scroll);
         }
       };
 
@@ -293,13 +291,9 @@ const Store = () => {
 
     if (autoScrollActive) {
       smoothScroll();
-    } else {
-      if (autoScrollFrameRef.current !== null) cancelAnimationFrame(autoScrollFrameRef.current);
     }
 
-    return () => {
-      if (autoScrollFrameRef.current !== null) cancelAnimationFrame(autoScrollFrameRef.current);
-    };
+    return;
   }, [autoScrollActive, pageCount]);
   
   if (loading && loadingData) {
