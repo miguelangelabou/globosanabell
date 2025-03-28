@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Timestamp } from "firebase/firestore"
 import { useCompany } from '../contexts/CompanyContext';
@@ -30,11 +30,6 @@ const Store = () => {
     const savedWishlist = localStorage.getItem("wishlist");
     return savedWishlist ? JSON.parse(savedWishlist) : [];
   });
-
-  const [autoScrollActive, setAutoScrollActive] = useState(false);
-  const idleTimeRef = useRef(0);
-  const autoScrollFrameRef = useRef<number | null>(null);
-  const idleIntervalRef = useRef<number | null>(null);  
 
   const ITEMS_PER_PAGE = 12;
   
@@ -228,73 +223,6 @@ const Store = () => {
     router.push('/thank-you');
   }
 
-  const resetIdleTimer = () => {
-    idleTimeRef.current = 0;
-    if (autoScrollActive) {
-      setAutoScrollActive(false);
-      if (autoScrollFrameRef.current !== null) {
-        cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
-    }
-  };
-
-  useEffect(() => {
-    const events = ["scroll", "click", "mousemove", "keydown"];
-    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
-
-    idleIntervalRef.current = window.setInterval(() => {
-      idleTimeRef.current += 1000;
-
-      if (idleTimeRef.current >= 3000 && !autoScrollActive) {
-        setInterval(() => {
-          setAutoScrollActive(true);
-        }, 200)
-      }
-    }, 1000);
-
-    return () => {
-      events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
-      if (idleIntervalRef.current !== null) setAutoScrollActive(false);
-      if (autoScrollFrameRef.current !== null) setAutoScrollActive(false);
-    };
-  }, [autoScrollActive]);
-
-  useEffect(() => {
-    const smoothScroll = () => {
-      if (!autoScrollActive) return;
-
-      const scrollStep = document.body.offsetHeight * 0.005;
-
-      const scroll = () => {
-        if (!autoScrollActive) return;
-
-        window.scrollTo({
-          top: window.scrollY + scrollStep,
-          behavior: 'smooth'
-        });
-
-        const productsContainer = document.getElementById("products-container");
-        if (productsContainer) {
-          const rect = productsContainer.getBoundingClientRect();
-
-          if ((rect.bottom + 200) <= window.innerHeight) {
-            setCurrentPage((prev) => (prev < pageCount - 1 ? prev + 1 : 0));
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            return;
-          }
-        }
-      };
-
-      scroll();
-    };
-
-    if (autoScrollActive) {
-      smoothScroll();
-    }
-
-    return;
-  }, [autoScrollActive, pageCount]);
   
   if (loading && loadingData) {
     return (
