@@ -33,10 +33,14 @@ export const addDocument = async (collectionName: string, data: (Company | Produ
 };
 
 export const categories = [
+    { value: "promociones", label: "Promociones" }
     { value: "14_febrero", label: "14 de Febrero" },
     { value: "flores_amarillas", label: "Flores Amarillas" },
+    { value: "dia_de_la_madre", label: "Día de las Madres" },
+    { value: "dia_del_padre", label: "Día del Padre" },
     { value: "navidad", label: "Navidad" },
     { value: "nacimientos", label: "Nacimientos" },
+    { value: "graduaciones", label: "Graduaciones" },
     { value: "peluches", label: "Peluches" },
     { value: "flores", label: "Flores" },
     { value: "ramos", label: "Ramos" },
@@ -49,12 +53,10 @@ export const categories = [
     { value: "bodas", label: "Bodas y eventos" },
     { value: "cestas", label: "Cestas regalo" },
     { value: "complementos", label: "Complementos" },
-    { value: "graduaciones", label: "Graduaciones" },
-    { value: "promociones", label: "Promociones" }
 ];
   
 export const categoryGroups = {
-      "Fechas Especiales": ["14_febrero", "flores_amarillas", "cumpleaños", "bodas", "navidad", "nacimientos", "graduaciones"],
+      "Fechas Especiales": ["14_febrero", "flores_amarillas", "dia_de_la_madre", "dia_del_padre", "cumpleaños", "bodas", "navidad", "nacimientos", "graduaciones"],
       "Productos Destacados": ["peluches", "flores", "ramos", "globos"],
       "Otros": ["joyeria", "juguetes", "dulces", "arreglos", "cestas", "complementos"]
 };
@@ -62,15 +64,17 @@ export const categoryGroups = {
 export const categoryPriority=()=>{
   const month=new Date().getMonth()+1;
   let categories;
-  if(month===1||month===2){
+  if(month===1||month===2) {
       categories=["promociones", "14_febrero","ramos","arreglos","peluches","joyeria","flores","cumpleaños","complementos"];
-  }else if(month>=3&&month<=5){
+  } else if(month>=3&&month<=4) {
       categories=["promociones", "flores_amarillas","ramos","arreglos","flores","joyeria","peluches","cumpleaños","complementos"];
-  }else if(month>=6&&month<=8){
-      categories=["promociones", "cumpleaños","graduaciones","flores","ramos","peluches","globos","juguetes","dulces","joyeria","cestas","complementos"];
-  }else if(month>=9&&month<=11){
+  }  else if(month===5) {
+      categories=["promociones", "dia_de_la_madre","ramos","arreglos","flores","joyeria","peluches","cumpleaños","complementos"];
+  } else if(month>=6&&month<=8) {
+      categories=["promociones", "cumpleaños","graduaciones", "dia_del_padre", "flores","ramos","peluches","globos","juguetes","dulces","joyeria","cestas","complementos"];
+  } else if(month>=9&&month<=11) {
       categories=["promociones", "flores_amarillas","cumpleaños","dulces","juguetes","arreglos","cestas","complementos"];
-  }else{
+  } else{
       categories=["promociones", "navidad","nacimientos","cestas","joyeria","peluches","dulces","flores","complementos"];
   }
   return { categories };
