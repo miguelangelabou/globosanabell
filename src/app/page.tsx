@@ -183,11 +183,11 @@ const Store = () => {
     cart.forEach((item, index) => {
       orderMessage += `${index + 1}. ${item.product.name} (ID: ${item.product.id})\n`;
       orderMessage += `   Cantidad: ${item.quantity}\n`;
-      orderMessage += `   Precio unitario: €${item.product.price.toFixed(2)}\n\n`;
+      orderMessage += `   Precio unitario: $${item.product.price.toFixed(2)}\n\n`;
     });
     
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    orderMessage += `Total: €${total.toFixed(2)}\n\n`;
+    orderMessage += `Total: $${total.toFixed(2)}\n\n`;
     
     orderMessage += "Deseo personalizarle lo siguiente:";
     
@@ -379,8 +379,8 @@ const Store = () => {
               <h3 className="text-sm font-medium text-gray-900 mb-2">Precio</h3>
               <div className="px-1">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">{priceRange.min}€</span>
-                  <span className="text-sm text-gray-600">{priceRange.max}€</span>
+                  <span className="text-sm text-gray-600">{priceRange.min}$</span>
+                  <span className="text-sm text-gray-600">{priceRange.max}$</span>
                 </div>
                 <input
                   type="range"
@@ -458,8 +458,8 @@ const Store = () => {
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Precio</h3>
                   <div className="px-1">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">{priceRange.min}€</span>
-                      <span className="text-sm text-gray-600">{priceRange.max}€</span>
+                      <span className="text-sm text-gray-600">{priceRange.min}$</span>
+                      <span className="text-sm text-gray-600">{priceRange.max}$</span>
                     </div>
                     <input
                       type="range"
@@ -527,7 +527,7 @@ const Store = () => {
                             <div>
                               <div className="flex justify-between text-base font-medium text-gray-900">
                                 <h3>{item.product.name}</h3>
-                                <p className="ml-4">{item.product.price}€</p>
+                                <p className="ml-4">{item.product.price}$</p>
                               </div>
                               <p className="mt-1 text-sm text-gray-500">{getCategoryLabel(item.product.category)}</p>
                             </div>
@@ -558,7 +558,7 @@ const Store = () => {
                     <div className="mt-6">
                       <div className="flex justify-between text-base font-medium text-gray-900 mb-4">
                         <p>Subtotal</p>
-                        <p>{cartTotal}€</p>
+                        <p>{cartTotal}$</p>
                       </div>
                       <p className="text-sm text-gray-600 mb-4">Precios de envio y descuentos se obtendran por WhatsApp.</p>
                       <button
@@ -704,7 +704,7 @@ const Store = () => {
                               </h3>
                               <div className="mt-auto pt-4 flex items-center justify-between">
                                 <p className="text-base sm:text-xl font-bold text-gray-900">
-                                  {product.price}€
+                                  {product.price}$
                                 </p>
                                 <button
                                   onClick={() => addToCart(product)}
