@@ -33,7 +33,7 @@ export const addDocument = async (collectionName: string, data: (Company | Produ
 };
 
 export const categories = [
-    { value: "promociones", label: "Promociones" }
+    { value: "promociones", label: "Promociones" },
     { value: "14_febrero", label: "14 de Febrero" },
     { value: "flores_amarillas", label: "Flores Amarillas" },
     { value: "dia_de_la_madre", label: "Día de las Madres" },
